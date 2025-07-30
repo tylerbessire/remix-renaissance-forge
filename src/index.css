@@ -2,37 +2,37 @@
 @tailwind components;
 @tailwind utilities;
 
-/* PLAY-THOSE Design System - Sunset/Dusk Aesthetic
-All colors MUST be HSL. Futuristic, sci-fi, playful vibes.
+/* RACTOONS Design System - Vibrant Sunset Aesthetic
+All colors MUST be HSL. Bright, vibrant, modern vibes.
 */
 
 @layer base {
   :root {
-    /* Core sunset palette */
-    --background: 220 25% 8%;
-    --foreground: 30 100% 95%;
+    /* Core vibrant palette */
+    --background: 220 35% 15%;
+    --foreground: 30 100% 98%;
 
-    /* Card system */
-    --card: 220 20% 12%;
-    --card-foreground: 30 100% 95%;
+    /* Card system - brighter, more vibrant */
+    --card: 220 30% 20%;
+    --card-foreground: 30 100% 98%;
 
-    --popover: 220 25% 10%;
-    --popover-foreground: 30 100% 95%;
+    --popover: 220 35% 18%;
+    --popover-foreground: 30 100% 98%;
 
-    /* Primary - Sunset Orange-Gold */
-    --primary: 25 100% 65%;
+    /* Primary - Vibrant Orange-Gold */
+    --primary: 35 100% 70%;
     --primary-foreground: 220 25% 8%;
 
-    /* Secondary - Purple-Pink Glow */
-    --secondary: 315 75% 65%;
-    --secondary-foreground: 30 100% 95%;
+    /* Secondary - Bright Purple-Pink */
+    --secondary: 320 85% 75%;
+    --secondary-foreground: 220 25% 8%;
 
-    /* Muted - Deep Cobalt */
-    --muted: 220 30% 15%;
-    --muted-foreground: 220 10% 70%;
+    /* Muted - Rich Cobalt */
+    --muted: 220 40% 25%;
+    --muted-foreground: 220 15% 80%;
 
-    /* Accent - Electric Highlight */
-    --accent: 280 100% 75%;
+    /* Accent - Electric Cyan */
+    --accent: 190 100% 70%;
     --accent-foreground: 220 25% 8%;
 
     --destructive: 0 84% 60%;
@@ -44,24 +44,30 @@ All colors MUST be HSL. Futuristic, sci-fi, playful vibes.
 
     --radius: 0.75rem;
 
-    /* Custom PLAY-THOSE tokens */
-    --sunset-glow: 25 100% 65%;
-    --sunset-deep: 15 85% 55%;
-    --twilight-purple: 280 60% 45%;
-    --twilight-pink: 315 75% 65%;
-    --cobalt-deep: 220 35% 12%;
-    --cobalt-mid: 220 25% 18%;
-    --cobalt-light: 220 15% 25%;
+    /* Custom RACTOONS vibrant tokens */
+    --sunset-glow: 35 100% 70%;
+    --sunset-deep: 25 95% 65%;
+    --twilight-purple: 280 80% 65%;
+    --twilight-pink: 320 85% 75%;
+    --cobalt-deep: 220 50% 20%;
+    --cobalt-mid: 220 40% 30%;
+    --cobalt-light: 220 30% 40%;
+    --cyan-bright: 190 100% 70%;
+    --teal-vibrant: 170 85% 65%;
     
-    /* Gradients */
+    /* Vibrant gradients */
     --gradient-sunset: linear-gradient(135deg, hsl(var(--sunset-glow)), hsl(var(--twilight-pink)));
     --gradient-twilight: linear-gradient(180deg, hsl(var(--twilight-purple)), hsl(var(--cobalt-deep)));
-    --gradient-glow: linear-gradient(90deg, hsl(var(--sunset-glow) / 0.8), hsl(var(--accent) / 0.6));
+    --gradient-glow: linear-gradient(90deg, hsl(var(--sunset-glow) / 0.9), hsl(var(--accent) / 0.8));
+    --gradient-vibrant: linear-gradient(120deg, hsl(var(--cyan-bright)), hsl(var(--sunset-glow)), hsl(var(--twilight-pink)));
+    --gradient-card: linear-gradient(145deg, hsl(var(--cobalt-mid) / 0.8), hsl(var(--cobalt-deep) / 0.9));
     
-    /* Shadows & Effects */
-    --shadow-glow: 0 0 40px hsl(var(--sunset-glow) / 0.3);
-    --shadow-purple: 0 0 30px hsl(var(--accent) / 0.4);
-    --shadow-deep: 0 20px 60px hsl(var(--cobalt-deep) / 0.8);
+    /* Vibrant shadows & effects */
+    --shadow-glow: 0 0 50px hsl(var(--sunset-glow) / 0.5);
+    --shadow-purple: 0 0 40px hsl(var(--accent) / 0.6);
+    --shadow-cyan: 0 0 35px hsl(var(--cyan-bright) / 0.5);
+    --shadow-deep: 0 25px 80px hsl(var(--cobalt-deep) / 0.9);
+    --shadow-card: 0 15px 40px hsl(var(--cobalt-deep) / 0.6);
     
     /* Animations */
     --transition-smooth: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
@@ -122,6 +128,6 @@ All colors MUST be HSL. Futuristic, sci-fi, playful vibes.
   }
 
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground font-montserrat;
   }
 }

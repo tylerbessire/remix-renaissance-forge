@@ -62,7 +62,7 @@ export default {
 					border: 'hsl(var(--sidebar-border))',
 					ring: 'hsl(var(--sidebar-ring))'
 				},
-				/* PLAY-THOSE Custom Colors */
+				/* RACTOONS Vibrant Colors */
 				sunset: {
 					glow: 'hsl(var(--sunset-glow))',
 					deep: 'hsl(var(--sunset-deep))'
@@ -75,12 +75,25 @@ export default {
 					deep: 'hsl(var(--cobalt-deep))',
 					mid: 'hsl(var(--cobalt-mid))',
 					light: 'hsl(var(--cobalt-light))'
+				},
+				cyan: {
+					bright: 'hsl(var(--cyan-bright))'
+				},
+				teal: {
+					vibrant: 'hsl(var(--teal-vibrant))'
 				}
+			},
+			fontFamily: {
+				'montserrat': ['Montserrat', 'sans-serif'],
+				'sans': ['Montserrat', 'ui-sans-serif', 'system-ui'],
 			},
 			borderRadius: {
 				lg: 'var(--radius)',
 				md: 'calc(var(--radius) - 2px)',
-				sm: 'calc(var(--radius) - 4px)'
+				sm: 'calc(var(--radius) - 4px)',
+				'xl': '1rem',
+				'2xl': '1.5rem',
+				'3xl': '2rem'
 			},
 			keyframes: {
 				'accordion-down': {
@@ -147,12 +160,16 @@ export default {
 			backgroundImage: {
 				'gradient-sunset': 'var(--gradient-sunset)',
 				'gradient-twilight': 'var(--gradient-twilight)',
-				'gradient-glow': 'var(--gradient-glow)'
+				'gradient-glow': 'var(--gradient-glow)',
+				'gradient-vibrant': 'var(--gradient-vibrant)',
+				'gradient-card': 'var(--gradient-card)'
 			},
 			boxShadow: {
 				'glow': 'var(--shadow-glow)',
 				'purple': 'var(--shadow-purple)',
-				'deep': 'var(--shadow-deep)'
+				'cyan': 'var(--shadow-cyan)',
+				'deep': 'var(--shadow-deep)',
+				'card': 'var(--shadow-card)'
 			}
 		}
 	},
