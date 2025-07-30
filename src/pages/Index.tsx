@@ -72,14 +72,17 @@ const Index = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-gradient-to-br from-cobalt-deep via-background to-cobalt-deep relative">
+      {/* Sunset vignette overlay */}
+      <div className="fixed inset-0 bg-gradient-to-t from-transparent via-transparent to-sunset-glow/10 pointer-events-none" />
+      <div className="fixed top-0 right-0 w-1/2 h-1/2 bg-gradient-to-bl from-sunset-glow/20 via-transparent to-transparent pointer-events-none" />
       {/* Header */}
       <header className="border-b border-cobalt-light bg-cobalt-deep/50 backdrop-blur-sm sticky top-0 z-50">
         <div className="container mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <h1 className="text-3xl font-bold bg-gradient-sunset bg-clip-text text-transparent">
-                PLAY-THOSE
+                RACTOONS
               </h1>
               <div className="hidden md:flex items-center gap-2 text-sm text-muted-foreground">
                 <Zap className="h-4 w-4" />
@@ -146,7 +149,7 @@ const Index = () => {
               </div>
               <div className="space-y-2">
                 <div className="text-accent font-medium">3. Generate</div>
-                <p>Let the AI raccoons work their magic and create your unique remix.</p>
+                <p>Let AI work its magic and create your unique remix.</p>
               </div>
             </div>
           </div>
