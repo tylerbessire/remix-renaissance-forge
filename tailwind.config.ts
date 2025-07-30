@@ -188,6 +188,46 @@ export default {
 					'50%': { transform: 'scale(1)', filter: 'brightness(2) saturate(3)' },
 					'75%': { transform: 'scale(1.02)', filter: 'brightness(1.8) saturate(2.5)' },
 					'100%': { transform: 'scale(1)', filter: 'brightness(1) saturate(1)' }
+				},
+				'laser-beam-1': {
+					'0%': { transform: 'translateY(-50%) rotate(0deg) scaleX(0)', opacity: '0' },
+					'50%': { transform: 'translateY(-50%) rotate(0deg) scaleX(1)', opacity: '1' },
+					'100%': { transform: 'translateY(-50%) rotate(45deg) scaleX(1)', opacity: '0.9' }
+				},
+				'laser-beam-2': {
+					'0%': { transform: 'translateY(-50%) rotate(45deg) scaleX(0)', opacity: '0' },
+					'50%': { transform: 'translateY(-50%) rotate(45deg) scaleX(1)', opacity: '1' },
+					'100%': { transform: 'translateY(-50%) rotate(90deg) scaleX(1)', opacity: '0.85' }
+				},
+				'laser-beam-3': {
+					'0%': { transform: 'translateY(-50%) rotate(90deg) scaleX(0)', opacity: '0' },
+					'50%': { transform: 'translateY(-50%) rotate(90deg) scaleX(1)', opacity: '1' },
+					'100%': { transform: 'translateY(-50%) rotate(135deg) scaleX(1)', opacity: '0.8' }
+				},
+				'laser-beam-4': {
+					'0%': { transform: 'translateY(-50%) rotate(135deg) scaleX(0)', opacity: '0' },
+					'50%': { transform: 'translateY(-50%) rotate(135deg) scaleX(1)', opacity: '1' },
+					'100%': { transform: 'translateY(-50%) rotate(180deg) scaleX(1)', opacity: '0.75' }
+				},
+				'laser-beam-5': {
+					'0%': { transform: 'translateY(-50%) rotate(180deg) scaleX(0)', opacity: '0' },
+					'50%': { transform: 'translateY(-50%) rotate(180deg) scaleX(1)', opacity: '1' },
+					'100%': { transform: 'translateY(-50%) rotate(225deg) scaleX(1)', opacity: '0.85' }
+				},
+				'laser-beam-6': {
+					'0%': { transform: 'translateY(-50%) rotate(225deg) scaleX(0)', opacity: '0' },
+					'50%': { transform: 'translateY(-50%) rotate(225deg) scaleX(1)', opacity: '1' },
+					'100%': { transform: 'translateY(-50%) rotate(270deg) scaleX(1)', opacity: '0.8' }
+				},
+				'laser-beam-7': {
+					'0%': { transform: 'translateY(-50%) rotate(270deg) scaleX(0)', opacity: '0' },
+					'50%': { transform: 'translateY(-50%) rotate(270deg) scaleX(1)', opacity: '1' },
+					'100%': { transform: 'translateY(-50%) rotate(315deg) scaleX(1)', opacity: '0.9' }
+				},
+				'laser-beam-8': {
+					'0%': { transform: 'translateY(-50%) rotate(315deg) scaleX(0)', opacity: '0' },
+					'50%': { transform: 'translateY(-50%) rotate(315deg) scaleX(1)', opacity: '1' },
+					'100%': { transform: 'translateY(-50%) rotate(0deg) scaleX(1)', opacity: '0.75' }
 				}
 			},
 			animation: {
@@ -205,7 +245,15 @@ export default {
 				'led-flow-d2': 'led-flow-diagonal 6s linear infinite reverse',
 				'color-shift': 'color-shift 8s ease-in-out infinite',
 				'rave-flash': 'rave-flash 0.8s ease-in-out infinite',
-				'laser-strobe': 'laser-strobe 1.2s ease-in-out infinite'
+				'laser-strobe': 'laser-strobe 1.2s ease-in-out infinite',
+				'laser-beam-1': 'laser-beam-1 2s ease-in-out infinite',
+				'laser-beam-2': 'laser-beam-2 2.2s ease-in-out infinite',
+				'laser-beam-3': 'laser-beam-3 1.8s ease-in-out infinite',
+				'laser-beam-4': 'laser-beam-4 2.4s ease-in-out infinite',
+				'laser-beam-5': 'laser-beam-5 2.1s ease-in-out infinite',
+				'laser-beam-6': 'laser-beam-6 1.9s ease-in-out infinite',
+				'laser-beam-7': 'laser-beam-7 2.3s ease-in-out infinite',
+				'laser-beam-8': 'laser-beam-8 2.0s ease-in-out infinite'
 			},
 			backgroundImage: {
 				'gradient-sunset': 'var(--gradient-sunset)',
