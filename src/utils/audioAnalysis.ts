@@ -1,8 +1,4 @@
-import { pipeline, env } from '@huggingface/transformers';
-
-// Configure transformers.js for optimal performance
-env.allowLocalModels = false;
-env.useBrowserCache = true;
+import { supabase } from '@/integrations/supabase/client';
 
 export interface AudioFeatures {
   tempo?: number;
@@ -50,11 +46,70 @@ class AudioAnalyzer {
   }
 
   async analyzeFile(file: File): Promise<AudioAnalysisResult> {
+    console.log('Analyzing audio file:', file.name);
+
+    try {
+      // Convert file to base64 for Supabase function
+      const arrayBuffer = await file.arrayBuffer();
+      const base64Audio = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
+      
+      console.log('Calling spectral analysis function...');
+      
+      // Call Supabase spectral analysis function
+      const { data, error } = await supabase.functions.invoke('spectral-analysis', {
+        body: {
+          audioData: base64Audio,
+          format: file.type || 'audio/wav'
+        }
+      });
+
+      if (error) {
+        console.error('Spectral analysis error:', error);
+        throw new Error(`Analysis failed: ${error.message}`);
+      }
+
+      if (!data || !data.spectralFeatures) {
+        throw new Error('Invalid response from spectral analysis');
+      }
+
+      console.log('Spectral analysis complete:', data);
+
+      // Map spectral analysis results to our AudioFeatures interface
+      const features: AudioFeatures = {
+        tempo: data.spectralFeatures.tempo || 120,
+        energy: data.spectralFeatures.energy || 0.5,
+        danceability: data.spectralFeatures.danceability || 0.5,
+        valence: data.spectralFeatures.valence || 0.5,
+        genre: data.spectralFeatures.genre || 'Unknown',
+        key: data.spectralFeatures.key || 'C',
+        mode: data.spectralFeatures.mode || 'major',
+        timeSignature: data.spectralFeatures.timeSignature || 4,
+        loudness: data.spectralFeatures.loudness || 0.5,
+        speechiness: data.spectralFeatures.speechiness || 0.1,
+        acousticness: data.spectralFeatures.acousticness || 0.5,
+        instrumentalness: data.spectralFeatures.instrumentalness || 0.5,
+        liveness: data.spectralFeatures.liveness || 0.1
+      };
+
+      return {
+        features,
+        transcription: data.transcription || '',
+        classification: features.genre || 'Unknown',
+        confidence: data.confidence || 0.8
+      };
+    } catch (error) {
+      console.error('Error analyzing audio:', error);
+      
+      // Fallback to basic analysis if spectral analysis fails
+      console.log('Falling back to basic audio analysis...');
+      return this.analyzeFileBasic(file);
+    }
+  }
+
+  private async analyzeFileBasic(file: File): Promise<AudioAnalysisResult> {
     if (!this.audioContext) {
       await this.initialize();
     }
-
-    console.log('Analyzing audio file:', file.name);
 
     try {
       // Convert file to audio buffer
@@ -67,16 +122,16 @@ class AudioAnalyzer {
       // Estimate genre based on audio characteristics
       features.genre = this.estimateGenre(features);
 
-      console.log('Audio analysis complete:', { features });
+      console.log('Basic audio analysis complete:', { features });
 
       return {
         features,
-        transcription: '', // Will be done by edge functions if needed
+        transcription: '',
         classification: features.genre || 'Unknown',
-        confidence: 0.8 // Basic confidence for now
+        confidence: 0.6 // Lower confidence for basic analysis
       };
     } catch (error) {
-      console.error('Error analyzing audio:', error);
+      console.error('Error in basic audio analysis:', error);
       throw new Error('Failed to analyze audio file');
     }
   }

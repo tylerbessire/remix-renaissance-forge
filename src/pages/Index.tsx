@@ -27,8 +27,22 @@ const Index = () => {
   ]);
   
   const [selectedSongs, setSelectedSongs] = useState<Song[]>([]);
+  
+  // File registry to preserve File objects during drag & drop
+  const [fileRegistry, setFileRegistry] = useState<Map<string, File>>(new Map());
 
   const updateColumnSongs = (columnId: string, songs: Song[]) => {
+    // Update file registry with new songs
+    setFileRegistry(prev => {
+      const newRegistry = new Map(prev);
+      songs.forEach(song => {
+        if (song.file instanceof File) {
+          newRegistry.set(song.id, song.file);
+        }
+      });
+      return newRegistry;
+    });
+    
     setColumns(prev => prev.map(col => 
       col.id === columnId ? { ...col, songs } : col
     ));
@@ -57,6 +71,26 @@ const Index = () => {
     setSelectedSongs(prev => prev.filter(s => s.id !== songId));
   };
 
+  // Helper function to clean up file registry when songs are removed
+  const cleanupFileRegistry = () => {
+    setFileRegistry(prev => {
+      const newRegistry = new Map(prev);
+      const allSongIds = new Set([
+        ...columns.flatMap(col => col.songs.map(s => s.id)),
+        ...selectedSongs.map(s => s.id)
+      ]);
+      
+      // Remove files that are no longer referenced
+      for (const [songId] of newRegistry) {
+        if (!allSongIds.has(songId)) {
+          newRegistry.delete(songId);
+        }
+      }
+      
+      return newRegistry;
+    });
+  };
+
   const clearMashup = () => {
     setSelectedSongs([]);
     toast.success("Mashup zone cleared");
@@ -67,8 +101,19 @@ const Index = () => {
     e.preventDefault();
     const songData = e.dataTransfer.getData('application/json');
     if (songData) {
-      const song = JSON.parse(songData);
-      addToMashup(song);
+      const songMetadata = JSON.parse(songData);
+      
+      // Restore File object from registry
+      const file = fileRegistry.get(songMetadata.id);
+      if (file) {
+        const song: Song = {
+          ...songMetadata,
+          file
+        };
+        addToMashup(song);
+      } else {
+        toast.error("Could not find audio file for this track");
+      }
     }
   };
 

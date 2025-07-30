@@ -66,7 +66,13 @@ export const SongColumn = ({
   };
 
   const handleDragStart = (e: React.DragEvent, song: Song) => {
-    e.dataTransfer.setData('application/json', JSON.stringify(song));
+    // Only transfer metadata, not the File object (to avoid serialization issues)
+    const songMetadata = {
+      id: song.id,
+      name: song.name,
+      artist: song.artist
+    };
+    e.dataTransfer.setData('application/json', JSON.stringify(songMetadata));
     onDragStart(song, columnTitle);
   };
 
