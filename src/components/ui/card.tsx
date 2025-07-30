@@ -9,10 +9,16 @@ const Card = React.forwardRef<
   <div
     ref={ref}
     className={cn(
-      "rounded-lg border backdrop-blur-xl bg-glass-background border-glass-border shadow-lg",
+      "rounded-2xl shadow-lg overflow-hidden relative",
       className
     )}
-    style={{ backdropFilter: 'blur(12px) saturate(150%)' }}
+    style={{ 
+      background: 'var(--glass-background)',
+      backdropFilter: 'blur(40px) saturate(180%)',
+      WebkitBackdropFilter: 'blur(40px) saturate(180%)',
+      border: '1px solid var(--glass-border)',
+      boxShadow: 'var(--glass-shadow)'
+    }}
     {...props}
   />
 ))
