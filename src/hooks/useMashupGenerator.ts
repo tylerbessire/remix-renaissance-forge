@@ -41,13 +41,24 @@ export const useMashupGenerator = () => {
       
       const songsData = await Promise.all(
         songs.map(async (song) => {
-          // For demo purposes, we'll just pass song metadata
-          // In production, you'd convert the audio file to base64 or upload to storage
+          // Convert audio file to base64
+          const audioData = await new Promise<string>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => {
+              const result = reader.result as string;
+              // Remove the data URL prefix to get just the base64 data
+              const base64 = result.split(',')[1];
+              resolve(base64);
+            };
+            reader.onerror = reject;
+            reader.readAsDataURL(song.file);
+          });
+
           return {
             id: song.id,
             name: song.name,
             artist: song.artist,
-            audioData: "", // Would contain base64 audio data
+            audioData,
           };
         })
       );
