@@ -62,7 +62,7 @@ export default {
 					border: 'hsl(var(--sidebar-border))',
 					ring: 'hsl(var(--sidebar-ring))'
 				},
-				/* RACTOONS Vibrant Colors */
+				/* Syncrasis Vibrant Colors */
 				sunset: {
 					glow: 'hsl(var(--sunset-glow))',
 					deep: 'hsl(var(--sunset-deep))'

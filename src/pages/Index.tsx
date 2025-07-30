@@ -83,7 +83,7 @@ const Index = () => {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-6">
               <h1 className="text-4xl font-black bg-gradient-sunset bg-clip-text text-transparent tracking-tight">
-                RACTOONS
+                Syncrasis
               </h1>
               <div className="hidden md:flex items-center gap-3 px-4 py-2 rounded-2xl bg-cyan-bright/20 border border-cyan-bright/30 backdrop-blur-sm">
                 <Zap className="h-5 w-5 text-cyan-bright" />

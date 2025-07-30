@@ -2,7 +2,7 @@
 @tailwind components;
 @tailwind utilities;
 
-/* RACTOONS Design System - Vibrant Sunset Aesthetic
+/* Syncrasis Design System - Vibrant Sunset Aesthetic
 All colors MUST be HSL. Bright, vibrant, modern vibes.
 */
 
@@ -44,7 +44,7 @@ All colors MUST be HSL. Bright, vibrant, modern vibes.
 
     --radius: 0.75rem;
 
-    /* Custom RACTOONS vibrant tokens */
+    /* Custom Syncrasis vibrant tokens */
     --sunset-glow: 35 100% 70%;
     --sunset-deep: 25 95% 65%;
     --twilight-purple: 280 80% 65%;
