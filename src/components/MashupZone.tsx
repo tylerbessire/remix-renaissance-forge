@@ -71,10 +71,10 @@ export const MashupZone = ({
       <div className="text-center space-y-6">
         {/* Header */}
         <div className="space-y-2">
-          <h2 className="text-2xl font-bold bg-gradient-sunset bg-clip-text text-transparent">
+          <h2 className="text-2xl font-bold bg-gradient-sunset bg-clip-text text-transparent" style={{ textShadow: '0 0 8px hsl(var(--background)), 0 0 16px hsl(var(--background)), 0 0 24px hsl(var(--background))' }}>
             MASHUP ZONE
           </h2>
-          <p className="text-muted-foreground max-w-md mx-auto">
+          <p className="text-muted-foreground max-w-md mx-auto" style={{ textShadow: '0 0 6px hsl(var(--background)), 0 0 12px hsl(var(--background))' }}>
             Drop your tracks and let AI create the perfect mashup
           </p>
         </div>

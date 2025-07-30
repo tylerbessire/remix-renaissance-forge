@@ -204,6 +204,12 @@ export default {
 				'cyan': 'var(--shadow-cyan)',
 				'deep': 'var(--shadow-deep)',
 				'card': 'var(--shadow-card)'
+			},
+			backdropFilter: {
+				'glass': 'var(--glass-backdrop)'
+			},
+			textShadow: {
+				'bubble': 'var(--text-shadow-bubble)'
 			}
 		}
 	},

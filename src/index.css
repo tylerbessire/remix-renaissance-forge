@@ -76,6 +76,14 @@ All colors MUST be HSL. Bright, vibrant, modern vibes.
     --shadow-deep: 0 25px 80px hsl(var(--cobalt-deep) / 0.9);
     --shadow-card: 0 15px 40px hsl(var(--cobalt-deep) / 0.6);
     
+    /* Glass morphism effects */
+    --glass-background: hsl(var(--cobalt-mid) / 0.15);
+    --glass-border: hsl(var(--foreground) / 0.2);
+    --glass-backdrop: blur(12px) saturate(150%);
+    
+    /* Text bubble effects */
+    --text-shadow-bubble: 0 0 8px hsl(var(--background)), 0 0 16px hsl(var(--background)), 0 0 24px hsl(var(--background));
+    
     /* Animations */
     --transition-smooth: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
     --transition-glow: all 0.3s ease-out;
