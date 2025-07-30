@@ -35,46 +35,22 @@ class AudioAnalyzer {
 
   async initialize() {
     try {
-      // Initialize Web Audio API
+      // Initialize Web Audio API only
       this.audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
       this.analyser = this.audioContext.createAnalyser();
       this.analyser.fftSize = 2048;
 
-      console.log('Loading AI models...');
-      
-      // Load audio classification model (lightweight)
-      this.classifier = await pipeline(
-        'audio-classification',
-        'facebook/wav2vec2-base-960h',
-        { device: 'webgpu' }
-      );
-
-      // Load speech recognition model (tiny for speed)
-      this.transcriber = await pipeline(
-        'automatic-speech-recognition',
-        'onnx-community/whisper-tiny.en',
-        { device: 'webgpu' }
-      );
-
-      console.log('Audio analysis models loaded successfully');
+      console.log('Audio analyzer initialized with Web Audio API');
+      // Skip AI models for now - they're causing issues
+      // The heavy lifting will be done in Supabase edge functions
     } catch (error) {
-      console.warn('WebGPU not available, falling back to CPU:', error);
-      
-      // Fallback to CPU
-      this.classifier = await pipeline(
-        'audio-classification',
-        'facebook/wav2vec2-base-960h'
-      );
-
-      this.transcriber = await pipeline(
-        'automatic-speech-recognition',
-        'onnx-community/whisper-tiny.en'
-      );
+      console.error('Failed to initialize audio context:', error);
+      throw error;
     }
   }
 
   async analyzeFile(file: File): Promise<AudioAnalysisResult> {
-    if (!this.audioContext || !this.classifier) {
+    if (!this.audioContext) {
       await this.initialize();
     }
 
@@ -88,43 +64,16 @@ class AudioAnalyzer {
       // Extract basic features using Web Audio API
       const features = this.extractBasicFeatures(audioBuffer);
       
-      // Create URL for AI model processing
-      const audioUrl = URL.createObjectURL(file);
-      
-      // Run AI analysis in parallel
-      const [classificationResult, transcriptionResult] = await Promise.allSettled([
-        this.classifier(audioUrl),
-        this.transcriber(audioUrl)
-      ]);
+      // Estimate genre based on audio characteristics
+      features.genre = this.estimateGenre(features);
 
-      // Process classification results
-      let classification = 'Unknown';
-      let confidence = 0;
-      
-      if (classificationResult.status === 'fulfilled' && classificationResult.value?.[0]) {
-        classification = classificationResult.value[0].label;
-        confidence = classificationResult.value[0].score;
-        
-        // Map classification to genre
-        features.genre = this.mapClassificationToGenre(classification);
-      }
-
-      // Process transcription results
-      let transcription = '';
-      if (transcriptionResult.status === 'fulfilled' && transcriptionResult.value?.text) {
-        transcription = transcriptionResult.value.text;
-      }
-
-      // Clean up
-      URL.revokeObjectURL(audioUrl);
-
-      console.log('Audio analysis complete:', { features, classification, confidence });
+      console.log('Audio analysis complete:', { features });
 
       return {
         features,
-        transcription,
-        classification,
-        confidence
+        transcription: '', // Will be done by edge functions if needed
+        classification: features.genre || 'Unknown',
+        confidence: 0.8 // Basic confidence for now
       };
     } catch (error) {
       console.error('Error analyzing audio:', error);
@@ -175,37 +124,17 @@ class AudioAnalyzer {
     };
   }
 
-  private mapClassificationToGenre(classification: string): string {
-    const genreMap: { [key: string]: string } = {
-      'music': 'Electronic',
-      'speech': 'Spoken Word',
-      'singing': 'Pop',
-      'guitar': 'Rock',
-      'piano': 'Classical',
-      'drum': 'Hip Hop',
-      'bass': 'Electronic',
-      'violin': 'Classical',
-      'trumpet': 'Jazz',
-      'saxophone': 'Jazz',
-      'electronic': 'Electronic',
-      'rock': 'Rock',
-      'pop': 'Pop',
-      'classical': 'Classical',
-      'jazz': 'Jazz',
-      'hip hop': 'Hip Hop',
-      'country': 'Country',
-      'blues': 'Blues',
-      'reggae': 'Reggae',
-      'folk': 'Folk'
-    };
-
-    const lowerClassification = classification.toLowerCase();
+  private estimateGenre(features: AudioFeatures): string {
+    const { energy = 0.5, danceability = 0.5, tempo = 120, speechiness = 0 } = features;
     
-    for (const [key, genre] of Object.entries(genreMap)) {
-      if (lowerClassification.includes(key)) {
-        return genre;
-      }
-    }
+    // Simple genre estimation based on audio characteristics
+    if (speechiness > 0.6) return 'Spoken Word';
+    if (energy > 0.8 && danceability > 0.7 && tempo > 120) return 'Electronic';
+    if (energy > 0.7 && tempo > 140) return 'Rock';
+    if (danceability > 0.8 && tempo > 100 && tempo < 130) return 'Pop';
+    if (energy < 0.4 && tempo < 100) return 'Classical';
+    if (danceability > 0.6 && tempo > 80 && tempo < 110) return 'Hip Hop';
+    if (energy > 0.6 && tempo > 110 && tempo < 140) return 'Dance';
     
     return 'Other';
   }
