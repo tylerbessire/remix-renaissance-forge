@@ -32,15 +32,55 @@ serve(async (req) => {
       );
     }
 
-    // Step 1: Generate concept with Claude
-    console.log('Generating mashup concept...');
-    const concept = await generateMashupConcept(songs);
+    const supabaseUrl = Deno.env.get('SUPABASE_URL');
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
 
-    // Step 2: Create mashup title
+    // Step 1: Perform spectral analysis on each song
+    console.log('Performing spectral analysis...');
+    const analysisPromises = songs.map(async (song) => {
+      try {
+        const response = await fetch(`${supabaseUrl}/functions/v1/spectral-analysis`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${supabaseServiceKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            audioData: song.audioData,
+            songId: song.id,
+            metadata: {
+              title: song.name,
+              artist: song.artist
+            }
+          })
+        });
+
+        if (!response.ok) {
+          console.warn(`Spectral analysis failed for ${song.name}`);
+          return null;
+        }
+
+        return await response.json();
+      } catch (error) {
+        console.warn(`Analysis failed for ${song.name}:`, error);
+        return null;
+      }
+    });
+
+    const analyses = await Promise.all(analysisPromises);
+    const validAnalyses = analyses.filter(Boolean);
+
+    console.log(`Completed analysis for ${validAnalyses.length}/${songs.length} songs`);
+
+    // Step 2: Generate concept with Claude using analysis data
+    console.log('Generating mashup concept with analysis...');
+    const concept = await generateMashupConceptWithAnalysis(songs, validAnalyses);
+
+    // Step 3: Create mashup title
     console.log('Creating mashup title...');
     const title = await generateMashupTitle(songs, concept);
 
-    // Step 3: Simulate music generation (would integrate with Suno or similar)
+    // Step 4: Simulate music generation (would integrate with Suno or similar)
     console.log('Generating music...');
     const audioResult = await generateMashupAudio(songs, concept);
 
@@ -70,27 +110,47 @@ serve(async (req) => {
   }
 });
 
-async function generateMashupConcept(songs: any[]): Promise<string> {
+async function generateMashupConceptWithAnalysis(songs: any[], spectralAnalyses: any[]): Promise<string> {
   const anthropicApiKey = Deno.env.get('ANTHROPIC_API_KEY');
+  const songNames = songs.map(song => song.name).join(' + ');
   
   if (!anthropicApiKey) {
-    // Fallback concept generation
-    const genres = ['Electronic', 'Ambient', 'Rock-Fusion', 'Synthwave', 'Experimental'];
-    const adjectives = ['Ethereal', 'Thunderous', 'Hypnotic', 'Chaotic', 'Sublime'];
-    const concepts = ['digital consciousness', 'neon dreams', 'cosmic rebellion', 'urban decay', 'infinite loops'];
-    
-    const randomGenre = genres[Math.floor(Math.random() * genres.length)];
-    const randomAdj = adjectives[Math.floor(Math.random() * adjectives.length)];
-    const randomConcept = concepts[Math.floor(Math.random() * concepts.length)];
-    
-    return `A ${randomAdj.toLowerCase()} ${randomGenre.toLowerCase()} journey through ${randomConcept}, where the essence of "${songs[0].name}" collides with the energy of "${songs[1].name}" to create something entirely new.`;
+    return `Professional fusion of ${songNames} - A sophisticated blend that leverages spectral analysis and emotional mapping to create a polished, radio-ready mashup with intelligent vocal layering and harmonic arrangements.`;
   }
 
-  try {
-    const prompt = `Create a creative concept for a music mashup combining these tracks:
-${songs.map(s => `- "${s.name}" by ${s.artist}`).join('\n')}
+  // Create detailed analysis summary for Claude
+  const analysisContext = spectralAnalyses.length > 0 ? 
+    spectralAnalyses.map((analysis, i) => {
+      if (!analysis?.analysis) return `Song ${i + 1} (${songs[i].name}): Analysis pending`;
+      
+      const { spectralFeatures, emotionalArc, musicalStructure, mashupPotential } = analysis.analysis;
+      
+      return `Song ${i + 1} (${songs[i].name}):
+- Tempo: ${spectralFeatures?.tempo || 'Unknown'} BPM
+- Key: ${spectralFeatures?.chromagram?.key || 'Unknown'} ${spectralFeatures?.chromagram?.mode || ''}
+- Overall Mood: ${emotionalArc?.overallMood || 'Unknown'}
+- Energy Peaks: ${emotionalArc?.energyPeaks?.length || 0} detected
+- Vocal Suitability: ${mashupPotential?.vocalSuitability?.hasStrongVocals ? 'Strong vocals' : 'Instrumental focus'}
+- Mashup Compatibility: ${Math.round((mashupPotential?.keyCompatibility || 0.5) * 100)}%
+- Song Structure: ${Object.keys(musicalStructure || {}).join(', ')}`;
+    }).join('\n\n') : `Analysis data not available - working with song titles only.`;
 
-Generate a single paragraph describing the artistic vision, sound, and emotional journey of this mashup. Be creative, futuristic, and evocative. Focus on how the tracks blend together to create something new.`;
+  try {
+    const prompt = `You are a professional music producer and AI mashup artist like those at Suno.ai. You have access to detailed spectral analysis of these songs. Create a compelling, creative concept for a mashup.
+
+SONG ANALYSIS DATA:
+${analysisContext}
+
+Based on this technical analysis, create a professional mashup concept that addresses:
+
+1. **Harmonic Blending**: How the keys and chord progressions will work together
+2. **Rhythmic Integration**: Tempo matching and beat synchronization strategies  
+3. **Emotional Arc**: How the combined emotional narratives create a cohesive story
+4. **Vocal Arrangement**: Layering, harmonization, and call-and-response techniques
+5. **Structural Composition**: Which song sections (intro, verse, chorus, bridge, outro) blend best
+6. **Spectral Considerations**: Frequency separation and audio mastering approach
+
+Write a captivating 2-3 paragraph concept that demonstrates deep musical understanding and would excite both casual listeners and audio engineers about this unique fusion.`;
 
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
@@ -102,7 +162,7 @@ Generate a single paragraph describing the artistic vision, sound, and emotional
       },
       body: JSON.stringify({
         model: 'claude-3-5-sonnet-20241022',
-        max_tokens: 200,
+        max_tokens: 1500,
         messages: [
           {
             role: 'user',
@@ -120,7 +180,7 @@ Generate a single paragraph describing the artistic vision, sound, and emotional
     return data.content[0].text;
   } catch (error) {
     console.error('Error calling Anthropic API:', error);
-    return `A beautiful collision where ${songs[0].name} meets ${songs[1].name}, creating an otherworldly journey through digital soundscapes.`;
+    return `Professional fusion of ${songNames} - A sophisticated blend that leverages spectral analysis and emotional mapping to create a polished, radio-ready mashup with intelligent vocal layering and harmonic arrangements.`;
   }
 }
 

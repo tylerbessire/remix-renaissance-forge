@@ -45,7 +45,7 @@ class AudioAnalyzer {
       // Load audio classification model (lightweight)
       this.classifier = await pipeline(
         'audio-classification',
-        'onnx-community/wav2vec2-large-xlsr-53-gender-recognition',
+        'facebook/wav2vec2-base-960h',
         { device: 'webgpu' }
       );
 
@@ -63,7 +63,7 @@ class AudioAnalyzer {
       // Fallback to CPU
       this.classifier = await pipeline(
         'audio-classification',
-        'onnx-community/wav2vec2-large-xlsr-53-gender-recognition'
+        'facebook/wav2vec2-base-960h'
       );
 
       this.transcriber = await pipeline(

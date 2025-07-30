@@ -7,6 +7,8 @@ import { cn } from "@/lib/utils";
 import { useMashupGenerator } from "@/hooks/useMashupGenerator";
 import { CompatibilityScore } from "@/components/CompatibilityScore";
 import { useAudioAnalysis } from "@/hooks/useAudioAnalysis";
+import { ClaudeCollaboration } from "@/components/ClaudeCollaboration";
+import { toast } from "sonner";
 
 
 interface Song {
@@ -199,6 +201,19 @@ export const MashupZone = ({
             </div>
           )}
         </div>
+
+        {/* Claude Collaboration */}
+        {result && (
+          <ClaudeCollaboration
+            mashupConcept={result.concept}
+            analysisData={[]}
+            onIterationRequest={async (feedback) => {
+              toast.info("Collaborating with Claude on new concept...");
+              // This would integrate with the mashup generator to create iterations
+              await generateMashup(selectedSongs);
+            }}
+          />
+        )}
 
         {/* Action Buttons */}
         <div className="flex gap-4 justify-center">
