@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -24,6 +24,7 @@ interface MashupZoneProps {
   selectedSongs: Song[];
   onRemoveSong: (songId: string) => void;
   onClearAll: () => void;
+  onRaveModeChange?: (isRave: boolean) => void;
   className?: string;
 }
 
@@ -31,10 +32,16 @@ export const MashupZone = ({
   selectedSongs, 
   onRemoveSong, 
   onClearAll,
+  onRaveModeChange,
   className 
 }: MashupZoneProps) => {
   const [result, setResult] = useState<MashupResult | null>(null);
   const { generateMashup, isProcessing, progress, processingStep } = useMashupGenerator();
+
+  // Trigger rave mode when processing
+  useEffect(() => {
+    onRaveModeChange?.(isProcessing);
+  }, [isProcessing, onRaveModeChange]);
 
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
@@ -71,10 +78,10 @@ export const MashupZone = ({
       <div className="text-center space-y-6">
         {/* Header */}
         <div className="space-y-2">
-          <h2 className="text-2xl font-bold bg-gradient-sunset bg-clip-text text-transparent" style={{ textShadow: '0 0 8px hsl(var(--background)), 0 0 16px hsl(var(--background)), 0 0 24px hsl(var(--background))' }}>
+          <h2 className="text-2xl font-bold bg-gradient-sunset bg-clip-text text-transparent">
             MASHUP ZONE
           </h2>
-          <p className="text-muted-foreground max-w-md mx-auto" style={{ textShadow: '0 0 6px hsl(var(--background)), 0 0 12px hsl(var(--background))' }}>
+          <p className="text-muted-foreground max-w-md mx-auto">
             Drop your tracks and let AI create the perfect mashup
           </p>
         </div>

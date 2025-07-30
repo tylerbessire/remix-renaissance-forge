@@ -19,6 +19,7 @@ interface Column {
 }
 
 const Index = () => {
+  const [isRaveMode, setIsRaveMode] = useState(false);
   const [columns, setColumns] = useState<Column[]>([
     { id: "1", title: "Vibe Check", songs: [] },
     { id: "2", title: "Bangers", songs: [] },
@@ -72,9 +73,9 @@ const Index = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-vibrant relative overflow-hidden">
+    <div className={`min-h-screen bg-gradient-vibrant relative overflow-hidden transition-all duration-1000 ${isRaveMode ? 'animate-rave-flash' : ''}`}>
       {/* LED Circuit Background */}
-      <div className="fixed inset-0 pointer-events-none z-0">
+      <div className={`fixed inset-0 pointer-events-none z-0 transition-all duration-1000 ${isRaveMode ? 'animate-laser-strobe' : ''}`}>
         {/* Horizontal LED trails - Multi-color lasers */}
         <div className="absolute top-[10%] left-0 w-4 h-0.5 opacity-80 animate-led-flow-h1 shadow-[0_0_10px_hsl(var(--electric-green))]" style={{ background: 'var(--laser-rainbow)' }} />
         <div className="absolute top-[25%] left-0 w-6 h-0.5 bg-electric-blue opacity-70 animate-led-flow-h2 shadow-[0_0_15px_hsl(var(--electric-blue))] animate-color-shift" />
@@ -161,6 +162,7 @@ const Index = () => {
                 selectedSongs={selectedSongs}
                 onRemoveSong={removeFromMashup}
                 onClearAll={clearMashup}
+                onRaveModeChange={setIsRaveMode}
               />
             </div>
           </div>

@@ -174,6 +174,20 @@ export default {
 					'50%': { filter: 'hue-rotate(180deg)' },
 					'75%': { filter: 'hue-rotate(270deg)' },
 					'100%': { filter: 'hue-rotate(360deg)' }
+				},
+				'rave-flash': {
+					'0%': { opacity: '1' },
+					'25%': { opacity: '0.4' },
+					'50%': { opacity: '1' },
+					'75%': { opacity: '0.6' },
+					'100%': { opacity: '1' }
+				},
+				'laser-strobe': {
+					'0%': { transform: 'scale(1)', filter: 'brightness(1) saturate(1)' },
+					'25%': { transform: 'scale(1.05)', filter: 'brightness(1.5) saturate(2)' },
+					'50%': { transform: 'scale(1)', filter: 'brightness(2) saturate(3)' },
+					'75%': { transform: 'scale(1.02)', filter: 'brightness(1.8) saturate(2.5)' },
+					'100%': { transform: 'scale(1)', filter: 'brightness(1) saturate(1)' }
 				}
 			},
 			animation: {
@@ -189,7 +203,9 @@ export default {
 				'led-flow-v2': 'led-flow-vertical 3.5s linear infinite reverse',
 				'led-flow-d1': 'led-flow-diagonal 5s linear infinite',
 				'led-flow-d2': 'led-flow-diagonal 6s linear infinite reverse',
-				'color-shift': 'color-shift 8s ease-in-out infinite'
+				'color-shift': 'color-shift 8s ease-in-out infinite',
+				'rave-flash': 'rave-flash 0.8s ease-in-out infinite',
+				'laser-strobe': 'laser-strobe 1.2s ease-in-out infinite'
 			},
 			backgroundImage: {
 				'gradient-sunset': 'var(--gradient-sunset)',

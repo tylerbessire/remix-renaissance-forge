@@ -77,11 +77,11 @@ All colors MUST be HSL. Bright, vibrant, modern vibes.
     --shadow-card: 0 15px 40px hsl(var(--cobalt-deep) / 0.6);
     
     /* Glass morphism effects - Apple style */
-    --glass-background: hsla(0, 0%, 100%, 0.1);
-    --glass-background-dark: hsla(0, 0%, 0%, 0.2);
-    --glass-border: hsla(0, 0%, 100%, 0.18);
-    --glass-border-dark: hsla(0, 0%, 255%, 0.1);
-    --glass-shadow: 0 8px 32px hsla(0, 0%, 0%, 0.37);
+    --glass-background: hsla(0, 0%, 0%, 0.4);
+    --glass-background-dark: hsla(0, 0%, 0%, 0.6);
+    --glass-border: hsla(0, 0%, 100%, 0.12);
+    --glass-border-dark: hsla(0, 0%, 255%, 0.08);
+    --glass-shadow: 0 8px 32px hsla(0, 0%, 0%, 0.5);
     
     /* Text bubble effects */
     --text-shadow-bubble: 0 0 8px hsl(var(--background)), 0 0 16px hsl(var(--background)), 0 0 24px hsl(var(--background));
