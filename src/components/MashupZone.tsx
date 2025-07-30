@@ -75,7 +75,7 @@ export const MashupZone = ({
             MASHUP ZONE
           </h2>
           <p className="text-muted-foreground max-w-md mx-auto">
-            Give the raccoons your songs — they'll trash panda this bad boy into a beast
+            Drop your tracks and let AI create the perfect mashup
           </p>
         </div>
 
@@ -102,7 +102,7 @@ export const MashupZone = ({
                   Drag 2-3 tracks here
                 </p>
                 <p className="text-sm text-muted-foreground">
-                  The AI raccoons are hungry for your music
+                  AI-powered music mashup generation
                 </p>
               </div>
             </div>
@@ -183,7 +183,7 @@ export const MashupZone = ({
               className="font-bold animate-sunset-pulse"
             >
               <Zap className="h-5 w-5 mr-2" />
-              {isProcessing ? "RACCOONS AT WORK..." : "UNLEASH THE RACCOONS"}
+              {isProcessing ? "CREATING MASHUP..." : "CREATE MASHUP"}
             </Button>
           )}
           
