@@ -41,6 +41,12 @@ export const useMashupGenerator = () => {
       
       const songsData = await Promise.all(
         songs.map(async (song) => {
+          // Validate that song.file is actually a File object
+          if (!song.file || !(song.file instanceof File)) {
+            console.error('Invalid file object:', song.file);
+            throw new Error(`Invalid file for song "${song.name}". Expected File object, got: ${typeof song.file}`);
+          }
+
           // Convert audio file to base64
           const audioData = await new Promise<string>((resolve, reject) => {
             const reader = new FileReader();
