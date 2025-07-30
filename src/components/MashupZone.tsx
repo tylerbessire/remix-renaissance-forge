@@ -5,7 +5,7 @@ import { Progress } from "@/components/ui/progress";
 import { Zap, Trash2, Play, Download, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useMashupGenerator } from "@/hooks/useMashupGenerator";
-import raccoonHero from "@/assets/raccoon-hero.jpg";
+
 
 interface Song {
   id: string;
@@ -92,11 +92,9 @@ export const MashupZone = ({
         >
           {selectedSongs.length === 0 ? (
             <div className="absolute inset-0 flex flex-col items-center justify-center space-y-4">
-              <img 
-                src={raccoonHero} 
-                alt="AI Raccoon" 
-                className="w-24 h-24 rounded-full animate-float shadow-purple"
-              />
+              <div className="w-24 h-24 rounded-full bg-gradient-sunset flex items-center justify-center animate-float shadow-purple">
+                <Sparkles className="w-12 h-12 text-white" />
+              </div>
               <div className="text-center">
                 <p className="text-lg font-medium text-foreground mb-2">
                   Drag 2-3 tracks here
