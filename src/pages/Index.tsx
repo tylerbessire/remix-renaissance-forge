@@ -73,12 +73,45 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-gradient-vibrant relative overflow-hidden">
+      {/* LED Circuit Background */}
+      <div className="fixed inset-0 pointer-events-none z-0">
+        {/* Horizontal LED trails - Multi-color lasers */}
+        <div className="absolute top-[10%] left-0 w-4 h-0.5 opacity-80 animate-led-flow-h1 shadow-[0_0_10px_hsl(var(--electric-green))]" style={{ background: 'var(--laser-rainbow)' }} />
+        <div className="absolute top-[25%] left-0 w-6 h-0.5 bg-electric-blue opacity-70 animate-led-flow-h2 shadow-[0_0_15px_hsl(var(--electric-blue))] animate-color-shift" />
+        <div className="absolute top-[60%] left-0 w-5 h-0.5 opacity-75 animate-led-flow-h1 shadow-[0_0_12px_hsl(var(--electric-purple))]" style={{ background: 'var(--laser-neon)', animationDelay: '1s' }} />
+        <div className="absolute top-[80%] left-0 w-8 h-0.5 bg-electric-red opacity-60 animate-led-flow-h2 shadow-[0_0_20px_hsl(var(--electric-red))] animate-color-shift" style={{ animationDelay: '3s' }} />
+        
+        {/* Additional rainbow laser streaks */}
+        <div className="absolute top-[35%] left-0 w-10 h-0.5 opacity-85 animate-led-flow-h1 shadow-[0_0_25px_hsl(var(--electric-green))]" style={{ background: 'var(--laser-rainbow)', animationDelay: '0.5s' }} />
+        <div className="absolute top-[45%] left-0 w-7 h-0.5 opacity-70 animate-led-flow-h2 shadow-[0_0_18px_hsl(var(--electric-blue))]" style={{ background: 'var(--laser-neon)', animationDelay: '2s' }} />
+        
+        {/* Vertical LED trails - Multi-color lasers */}
+        <div className="absolute top-0 left-[15%] w-0.5 h-4 bg-electric-yellow opacity-85 animate-led-flow-v1 shadow-[0_0_8px_hsl(var(--electric-yellow))] animate-color-shift" />
+        <div className="absolute top-0 left-[45%] w-0.5 h-6 opacity-65 animate-led-flow-v2 shadow-[0_0_16px_hsl(var(--electric-green))]" style={{ background: 'var(--laser-rainbow)', animationDelay: '1.5s' }} />
+        <div className="absolute top-0 left-[75%] w-0.5 h-5 bg-electric-blue opacity-70 animate-led-flow-v1 shadow-[0_0_14px_hsl(var(--electric-blue))] animate-color-shift" style={{ animationDelay: '2.5s' }} />
+        <div className="absolute top-0 right-[10%] w-0.5 h-7 opacity-80 animate-led-flow-v2 shadow-[0_0_18px_hsl(var(--electric-purple))]" style={{ background: 'var(--laser-neon)', animationDelay: '0.8s' }} />
+        
+        {/* Additional vertical rainbow streaks */}
+        <div className="absolute top-0 left-[30%] w-0.5 h-8 opacity-75 animate-led-flow-v1 shadow-[0_0_20px_hsl(var(--electric-red))]" style={{ background: 'var(--laser-rainbow)', animationDelay: '3.2s' }} />
+        <div className="absolute top-0 left-[60%] w-0.5 h-5 opacity-80 animate-led-flow-v2 shadow-[0_0_15px_hsl(var(--electric-purple))]" style={{ background: 'var(--laser-neon)', animationDelay: '1.8s' }} />
+        
+        {/* Diagonal LED trails */}
+        <div className="absolute top-0 left-0 w-3 h-0.5 bg-electric-red opacity-60 animate-led-flow-d1 shadow-[0_0_10px_hsl(var(--electric-red))] transform rotate-45" />
+        <div className="absolute top-0 left-0 w-4 h-0.5 bg-electric-yellow opacity-75 animate-led-flow-d2 shadow-[0_0_12px_hsl(var(--electric-yellow))] transform rotate-[135deg]" />
+        
+        {/* Color-shifting corner accents */}
+        <div className="absolute top-4 left-4 w-16 h-16 border-2 border-electric-green rounded-lg animate-color-shift shadow-[0_0_20px_hsl(var(--electric-green))]" />
+        <div className="absolute top-4 right-4 w-12 h-12 border-2 border-electric-blue rounded-full animate-color-shift shadow-[0_0_15px_hsl(var(--electric-blue))]" style={{ animationDelay: '2s' }} />
+        <div className="absolute bottom-4 left-4 w-20 h-8 border-2 border-electric-purple rounded-full animate-color-shift shadow-[0_0_25px_hsl(var(--electric-purple))]" style={{ animationDelay: '4s' }} />
+        <div className="absolute bottom-4 right-4 w-14 h-14 border-2 border-electric-red rounded-lg animate-color-shift shadow-[0_0_18px_hsl(var(--electric-red))]" style={{ animationDelay: '6s' }} />
+      </div>
+      
       {/* Vibrant animated overlay */}
-      <div className="fixed inset-0 bg-gradient-to-br from-sunset-glow/30 via-cyan-bright/20 to-twilight-pink/25 pointer-events-none animate-glow-rotate" />
-      <div className="fixed inset-0 bg-gradient-to-t from-cobalt-deep/80 via-cobalt-mid/40 to-transparent pointer-events-none" />
+      <div className="fixed inset-0 bg-gradient-to-br from-sunset-glow/30 via-cyan-bright/20 to-twilight-pink/25 pointer-events-none animate-glow-rotate z-1" />
+      <div className="fixed inset-0 bg-gradient-to-t from-cobalt-deep/80 via-cobalt-mid/40 to-transparent pointer-events-none z-1" />
       
       {/* Header */}
-      <header className="border-b border-cyan-bright/30 bg-cobalt-deep/70 backdrop-blur-xl sticky top-0 z-50 shadow-card">
+      <header className="border-b border-cyan-bright/30 bg-cobalt-deep/70 backdrop-blur-xl sticky top-0 z-50 shadow-card relative">
         <div className="container mx-auto px-6 py-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-6">

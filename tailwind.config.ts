@@ -81,6 +81,14 @@ export default {
 				},
 				teal: {
 					vibrant: 'hsl(var(--teal-vibrant))'
+				},
+				// Electric LED colors
+				electric: {
+					green: 'hsl(var(--electric-green))',
+					blue: 'hsl(var(--electric-blue))',
+					purple: 'hsl(var(--electric-purple))',
+					red: 'hsl(var(--electric-red))',
+					yellow: 'hsl(var(--electric-yellow))'
 				}
 			},
 			fontFamily: {
@@ -147,6 +155,25 @@ export default {
 						transform: 'translateY(0)',
 						opacity: '1'
 					}
+				},
+				'led-flow-horizontal': {
+					'0%': { transform: 'translateX(-100%)' },
+					'100%': { transform: 'translateX(100vw)' }
+				},
+				'led-flow-vertical': {
+					'0%': { transform: 'translateY(-100%)' },
+					'100%': { transform: 'translateY(100vh)' }
+				},
+				'led-flow-diagonal': {
+					'0%': { transform: 'translate(-100%, -100%)' },
+					'100%': { transform: 'translate(100vw, 100vh)' }
+				},
+				'color-shift': {
+					'0%': { filter: 'hue-rotate(0deg)' },
+					'25%': { filter: 'hue-rotate(90deg)' },
+					'50%': { filter: 'hue-rotate(180deg)' },
+					'75%': { filter: 'hue-rotate(270deg)' },
+					'100%': { filter: 'hue-rotate(360deg)' }
 				}
 			},
 			animation: {
@@ -155,7 +182,14 @@ export default {
 				'sunset-pulse': 'sunset-pulse 3s ease-in-out infinite',
 				'float': 'float 3s ease-in-out infinite',
 				'glow-rotate': 'glow-rotate 8s linear infinite',
-				'slide-up': 'slide-up 0.6s ease-out'
+				'slide-up': 'slide-up 0.6s ease-out',
+				'led-flow-h1': 'led-flow-horizontal 3s linear infinite',
+				'led-flow-h2': 'led-flow-horizontal 4s linear infinite reverse',
+				'led-flow-v1': 'led-flow-vertical 2.5s linear infinite',
+				'led-flow-v2': 'led-flow-vertical 3.5s linear infinite reverse',
+				'led-flow-d1': 'led-flow-diagonal 5s linear infinite',
+				'led-flow-d2': 'led-flow-diagonal 6s linear infinite reverse',
+				'color-shift': 'color-shift 8s ease-in-out infinite'
 			},
 			backgroundImage: {
 				'gradient-sunset': 'var(--gradient-sunset)',

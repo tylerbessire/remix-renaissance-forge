@@ -55,6 +55,13 @@ All colors MUST be HSL. Bright, vibrant, modern vibes.
     --cyan-bright: 190 100% 70%;
     --teal-vibrant: 170 85% 65%;
     
+    /* Electric LED colors */
+    --electric-green: 120 100% 50%;
+    --electric-blue: 200 100% 60%;
+    --electric-purple: 280 100% 70%;
+    --electric-red: 0 100% 60%;
+    --electric-yellow: 60 100% 60%;
+    
     /* Vibrant gradients */
     --gradient-sunset: linear-gradient(135deg, hsl(var(--sunset-glow)), hsl(var(--twilight-pink)));
     --gradient-twilight: linear-gradient(180deg, hsl(var(--twilight-purple)), hsl(var(--cobalt-deep)));
@@ -72,6 +79,29 @@ All colors MUST be HSL. Bright, vibrant, modern vibes.
     /* Animations */
     --transition-smooth: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
     --transition-glow: all 0.3s ease-out;
+    
+    /* LED Circuit Patterns */
+    --led-trail-1: linear-gradient(90deg, transparent 0%, hsl(var(--electric-green)) 50%, transparent 100%);
+    --led-trail-2: linear-gradient(180deg, transparent 0%, hsl(var(--electric-blue)) 50%, transparent 100%);
+    --led-trail-3: linear-gradient(270deg, transparent 0%, hsl(var(--electric-purple)) 50%, transparent 100%);
+    --led-trail-4: linear-gradient(0deg, transparent 0%, hsl(var(--electric-red)) 50%, transparent 100%);
+    --led-trail-5: linear-gradient(45deg, transparent 0%, hsl(var(--electric-yellow)) 50%, transparent 100%);
+    
+    /* Multi-color laser gradients */
+    --laser-rainbow: linear-gradient(90deg, 
+      hsl(var(--electric-red)), 
+      hsl(var(--electric-yellow)), 
+      hsl(var(--electric-green)), 
+      hsl(var(--electric-blue)), 
+      hsl(var(--electric-purple))
+    );
+    --laser-neon: linear-gradient(45deg, 
+      hsl(var(--electric-green)) 0%, 
+      hsl(var(--electric-blue)) 25%, 
+      hsl(var(--electric-purple)) 50%, 
+      hsl(var(--electric-red)) 75%, 
+      hsl(var(--electric-yellow)) 100%
+    );
 
     --sidebar-background: 220 25% 10%;
     --sidebar-foreground: 30 100% 95%;
