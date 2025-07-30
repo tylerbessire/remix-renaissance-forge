@@ -45,7 +45,7 @@ class AudioAnalyzer {
       // Load audio classification model (lightweight)
       this.classifier = await pipeline(
         'audio-classification',
-        'MIT/ast-finetuned-audioset-10-10-0.4593',
+        'onnx-community/wav2vec2-large-xlsr-53-gender-recognition',
         { device: 'webgpu' }
       );
 
@@ -63,7 +63,7 @@ class AudioAnalyzer {
       // Fallback to CPU
       this.classifier = await pipeline(
         'audio-classification',
-        'MIT/ast-finetuned-audioset-10-10-0.4593'
+        'onnx-community/wav2vec2-large-xlsr-53-gender-recognition'
       );
 
       this.transcriber = await pipeline(
