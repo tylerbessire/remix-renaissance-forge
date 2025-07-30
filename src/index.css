@@ -2,57 +2,79 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
-All colors MUST be HSL.
+/* PLAY-THOSE Design System - Sunset/Dusk Aesthetic
+All colors MUST be HSL. Futuristic, sci-fi, playful vibes.
 */
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    /* Core sunset palette */
+    --background: 220 25% 8%;
+    --foreground: 30 100% 95%;
 
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    /* Card system */
+    --card: 220 20% 12%;
+    --card-foreground: 30 100% 95%;
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
+    --popover: 220 25% 10%;
+    --popover-foreground: 30 100% 95%;
 
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
+    /* Primary - Sunset Orange-Gold */
+    --primary: 25 100% 65%;
+    --primary-foreground: 220 25% 8%;
 
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
+    /* Secondary - Purple-Pink Glow */
+    --secondary: 315 75% 65%;
+    --secondary-foreground: 30 100% 95%;
 
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+    /* Muted - Deep Cobalt */
+    --muted: 220 30% 15%;
+    --muted-foreground: 220 10% 70%;
 
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    /* Accent - Electric Highlight */
+    --accent: 280 100% 75%;
+    --accent-foreground: 220 25% 8%;
 
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 30 100% 95%;
 
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
+    --border: 220 15% 20%;
+    --input: 220 15% 18%;
+    --ring: 25 100% 65%;
 
-    --radius: 0.5rem;
+    --radius: 0.75rem;
 
-    --sidebar-background: 0 0% 98%;
+    /* Custom PLAY-THOSE tokens */
+    --sunset-glow: 25 100% 65%;
+    --sunset-deep: 15 85% 55%;
+    --twilight-purple: 280 60% 45%;
+    --twilight-pink: 315 75% 65%;
+    --cobalt-deep: 220 35% 12%;
+    --cobalt-mid: 220 25% 18%;
+    --cobalt-light: 220 15% 25%;
+    
+    /* Gradients */
+    --gradient-sunset: linear-gradient(135deg, hsl(var(--sunset-glow)), hsl(var(--twilight-pink)));
+    --gradient-twilight: linear-gradient(180deg, hsl(var(--twilight-purple)), hsl(var(--cobalt-deep)));
+    --gradient-glow: linear-gradient(90deg, hsl(var(--sunset-glow) / 0.8), hsl(var(--accent) / 0.6));
+    
+    /* Shadows & Effects */
+    --shadow-glow: 0 0 40px hsl(var(--sunset-glow) / 0.3);
+    --shadow-purple: 0 0 30px hsl(var(--accent) / 0.4);
+    --shadow-deep: 0 20px 60px hsl(var(--cobalt-deep) / 0.8);
+    
+    /* Animations */
+    --transition-smooth: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-glow: all 0.3s ease-out;
 
-    --sidebar-foreground: 240 5.3% 26.1%;
-
-    --sidebar-primary: 240 5.9% 10%;
-
-    --sidebar-primary-foreground: 0 0% 98%;
-
-    --sidebar-accent: 240 4.8% 95.9%;
-
-    --sidebar-accent-foreground: 240 5.9% 10%;
-
-    --sidebar-border: 220 13% 91%;
-
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --sidebar-background: 220 25% 10%;
+    --sidebar-foreground: 30 100% 95%;
+    --sidebar-primary: 25 100% 65%;
+    --sidebar-primary-foreground: 220 25% 8%;
+    --sidebar-accent: 220 20% 15%;
+    --sidebar-accent-foreground: 30 100% 95%;
+    --sidebar-border: 220 15% 20%;
+    --sidebar-ring: 25 100% 65%;
   }
 
   .dark {
