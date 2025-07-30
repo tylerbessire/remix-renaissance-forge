@@ -2,9 +2,11 @@ import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { Zap, Trash2, Play, Download, Sparkles } from "lucide-react";
+import { Zap, Trash2, Play, Download, Sparkles, TrendingUp } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useMashupGenerator } from "@/hooks/useMashupGenerator";
+import { CompatibilityScore } from "@/components/CompatibilityScore";
+import { useAudioAnalysis } from "@/hooks/useAudioAnalysis";
 
 
 interface Song {
@@ -37,11 +39,22 @@ export const MashupZone = ({
 }: MashupZoneProps) => {
   const [result, setResult] = useState<MashupResult | null>(null);
   const { generateMashup, isProcessing, progress, processingStep } = useMashupGenerator();
+  const { analyzeMashupCompatibility } = useAudioAnalysis();
+  const [compatibility, setCompatibility] = useState<{ score: number; reasons: string[]; suggestions: string[] } | null>(null);
 
   // Trigger rave mode when processing
   useEffect(() => {
     onRaveModeChange?.(isProcessing);
   }, [isProcessing, onRaveModeChange]);
+
+  // Analyze compatibility when songs change
+  useEffect(() => {
+    if (selectedSongs.length >= 2) {
+      analyzeMashupCompatibility(selectedSongs).then(setCompatibility);
+    } else {
+      setCompatibility(null);
+    }
+  }, [selectedSongs, analyzeMashupCompatibility]);
 
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
@@ -148,6 +161,16 @@ export const MashupZone = ({
                   </div>
                   <Progress value={progress} className="w-full max-w-xs mx-auto" />
                 </div>
+              )}
+
+              {/* Compatibility Analysis */}
+              {compatibility && selectedSongs.length >= 2 && !isProcessing && (
+                <CompatibilityScore 
+                  score={compatibility.score}
+                  reasons={compatibility.reasons}
+                  suggestions={compatibility.suggestions}
+                  className="animate-slide-up"
+                />
               )}
 
               {/* Result */}
