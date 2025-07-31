@@ -187,11 +187,33 @@ export const MashupZone = ({
                     </p>
                   </div>
                   <div className="flex gap-2 justify-center">
-                    <Button size="sm" className="bg-gradient-sunset hover:shadow-glow">
+                    <Button 
+                      size="sm" 
+                      className="bg-gradient-sunset hover:shadow-glow"
+                      onClick={() => {
+                        const audio = new Audio(result.audioUrl);
+                        audio.play().catch(error => {
+                          console.error('Error playing audio:', error);
+                          toast.error('Unable to play audio');
+                        });
+                      }}
+                    >
                       <Play className="h-4 w-4 mr-2" />
                       Play
                     </Button>
-                    <Button size="sm" variant="outline" className="border-twilight-pink text-twilight-pink hover:bg-twilight-pink/10">
+                    <Button 
+                      size="sm" 
+                      variant="outline" 
+                      className="border-twilight-pink text-twilight-pink hover:bg-twilight-pink/10"
+                      onClick={() => {
+                        const link = document.createElement('a');
+                        link.href = result.audioUrl;
+                        link.download = `${result.title}.mp3`;
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+                      }}
+                    >
                       <Download className="h-4 w-4 mr-2" />
                       Download
                     </Button>
