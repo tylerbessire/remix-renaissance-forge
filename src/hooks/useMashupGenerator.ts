@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { audioMixer } from "@/utils/audioMixer";
 
 interface Song {
   id: string;
@@ -81,18 +82,25 @@ export const useMashupGenerator = () => {
         throw new Error(error.message);
       }
 
-      setProcessingStep("Trash pandas are working their magic...");
+      setProcessingStep("Mixing audio tracks...");
       setProgress(80);
       
-      // Simulate final processing
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // Mix the actual audio files
+      const audioFiles = songs.map(song => song.file);
+      const mixedAudioUrl = await audioMixer.mixTracks(audioFiles, {
+        crossfadeTime: 2,
+        volumeBalance: audioFiles.map(() => 1 / audioFiles.length)
+      });
 
       setProcessingStep("Mashup complete!");
       setProgress(100);
 
       if (data?.success) {
         toast.success(`Created "${data.result.title}"!`);
-        return data.result;
+        return {
+          ...data.result,
+          audioUrl: mixedAudioUrl // Use the real mixed audio instead of placeholder
+        };
       } else {
         throw new Error("Mashup generation failed");
       }

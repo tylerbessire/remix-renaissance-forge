@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -43,6 +43,17 @@ export const MashupZone = ({
   const { generateMashup, isProcessing, progress, processingStep } = useMashupGenerator();
   const { analyzeMashupCompatibility } = useAudioAnalysis();
   const [compatibility, setCompatibility] = useState<{ score: number; reasons: string[]; suggestions: string[] } | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  // Cleanup audio when component unmounts or result changes
+  useEffect(() => {
+    return () => {
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current = null;
+      }
+    };
+  }, [result]);
 
   // Trigger rave mode when processing
   useEffect(() => {
@@ -191,8 +202,11 @@ export const MashupZone = ({
                       size="sm" 
                       className="bg-gradient-sunset hover:shadow-glow"
                       onClick={() => {
-                        const audio = new Audio(result.audioUrl);
-                        audio.play().catch(error => {
+                        if (audioRef.current) {
+                          audioRef.current.pause();
+                        }
+                        audioRef.current = new Audio(result.audioUrl);
+                        audioRef.current.play().catch(error => {
                           console.error('Error playing audio:', error);
                           toast.error('Unable to play audio');
                         });
