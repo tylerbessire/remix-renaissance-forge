@@ -13,9 +13,9 @@ export class AudioMixer {
 
   async mixTracks(audioFiles: File[], options: MixingOptions = {}): Promise<string> {
     const {
-      crossfadeTime = 3,
+      crossfadeTime = 2,
       volumeBalance = [],
-      tempoSync = false
+      tempoSync = true
     } = options;
 
     try {
@@ -34,25 +34,40 @@ export class AudioMixer {
         this.audioContext.sampleRate
       );
 
-      // Mix the tracks
+      // Mix the tracks with advanced processing
       audioBuffers.forEach((buffer, index) => {
         const source = offlineContext.createBufferSource();
         const gainNode = offlineContext.createGain();
+        const compressor = offlineContext.createDynamicsCompressor();
+        const filter = offlineContext.createBiquadFilter();
         
         source.buffer = buffer;
         
-        // Set volume based on balance or default
-        const volume = volumeBalance[index] !== undefined ? volumeBalance[index] : 1 / audioBuffers.length;
+        // Advanced audio processing
+        compressor.threshold.setValueAtTime(-20, 0);
+        compressor.knee.setValueAtTime(6, 0);
+        compressor.ratio.setValueAtTime(4, 0);
+        compressor.attack.setValueAtTime(0.003, 0);
+        compressor.release.setValueAtTime(0.1, 0);
+        
+        // High-pass filter to clean low frequencies
+        filter.type = 'highpass';
+        filter.frequency.setValueAtTime(40, 0);
+        
+        // Set volume with dynamic range
+        const volume = volumeBalance[index] !== undefined ? volumeBalance[index] : 0.8 / audioBuffers.length;
         gainNode.gain.setValueAtTime(volume, 0);
         
-        // Apply crossfade if multiple tracks
+        // Advanced crossfade with exponential curves
         if (audioBuffers.length > 1 && index > 0) {
-          gainNode.gain.setValueAtTime(0, 0);
-          gainNode.gain.linearRampToValueAtTime(volume, crossfadeTime);
+          gainNode.gain.setValueAtTime(0.01, 0);
+          gainNode.gain.exponentialRampToValueAtTime(volume, crossfadeTime);
         }
 
-        // Connect and start
-        source.connect(gainNode);
+        // Connect with professional audio chain
+        source.connect(filter);
+        filter.connect(compressor);
+        compressor.connect(gainNode);
         gainNode.connect(offlineContext.destination);
         source.start(0);
       });

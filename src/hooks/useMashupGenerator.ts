@@ -79,8 +79,9 @@ export const useMashupGenerator = () => {
       
       const audioFiles = songs.map(song => song.file);
       const mixedAudioUrl = await audioMixer.mixTracks(audioFiles, {
-        crossfadeTime: 2,
-        volumeBalance: audioFiles.map(() => 1 / audioFiles.length)
+        crossfadeTime: 1.5,
+        volumeBalance: audioFiles.map((_, i) => i === 0 ? 0.6 : 0.4 / (audioFiles.length - 1)),
+        tempoSync: true
       });
 
       // Step 3: Get Claude's professional mashup direction

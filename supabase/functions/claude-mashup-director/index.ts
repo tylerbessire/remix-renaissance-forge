@@ -18,7 +18,17 @@ serve(async (req) => {
 
     const anthropicApiKey = Deno.env.get('ANTHROPIC_API_KEY');
     if (!anthropicApiKey) {
-      throw new Error('ANTHROPIC_API_KEY not configured');
+      console.error('ANTHROPIC_API_KEY not configured');
+      return new Response(
+        JSON.stringify({ 
+          error: 'ANTHROPIC_API_KEY not configured',
+          success: false 
+        }),
+        { 
+          status: 500, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      );
     }
 
     // Prepare analysis context for Claude

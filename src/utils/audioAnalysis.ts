@@ -102,7 +102,7 @@ class AudioAnalyzer {
       
       // Fallback to basic analysis if spectral analysis fails
       console.log('Falling back to basic audio analysis...');
-      return this.analyzeFileBasic(file);
+      return await this.analyzeFileBasic(file);
     }
   }
 
