@@ -2,6 +2,7 @@ import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { audioMixer } from "@/utils/audioMixer";
+import { audioAnalyzer } from "@/utils/audioAnalysis";
 
 interface Song {
   id: string;
@@ -18,6 +19,8 @@ interface MashupResult {
     duration: string;
     genre: string;
     energy: string;
+    artistCredits?: string;
+    professionalDirection?: any;
   };
 }
 
@@ -80,30 +83,54 @@ export const useMashupGenerator = () => {
         volumeBalance: audioFiles.map(() => 1 / audioFiles.length)
       });
 
-      // Step 3: Generate mashup concept with smaller data payload
-      setProcessingStep("Cooking up the mashup concept...");
-      setProgress(80);
+      // Step 3: Get Claude's professional mashup direction
+      setProcessingStep("Consulting with Claude (Professional Mashup Artist)...");
+      setProgress(70);
       
-      // Send only metadata, not large audio data
+      // Get analysis data for Claude
+      const analysisData = await Promise.all(
+        songs.map(async (song) => {
+          try {
+            return await audioAnalyzer.analyzeFile(song.file);
+          } catch (error) {
+            console.warn('Analysis failed for song:', song.name, error);
+            return null;
+          }
+        })
+      );
+
       const songsMetadata = songs.map(song => ({
         id: song.id,
         name: song.name,
         artist: song.artist,
-        // Remove audioData to avoid memory limits
       }));
 
-      const { data, error } = await supabase.functions.invoke('generate-mashup', {
-        body: { songs: songsMetadata }
+      const { data: claudeData, error: claudeError } = await supabase.functions.invoke('claude-mashup-director', {
+        body: { 
+          songs: songsMetadata,
+          analysisData: analysisData.filter(Boolean)
+        }
       });
+
+      setProcessingStep("Applying professional mashup techniques...");
+      setProgress(90);
 
       setProcessingStep("Mashup complete!");
       setProgress(100);
 
-      if (data?.success) {
-        toast.success(`Created "${data.result.title}"!`);
+      if (claudeData?.success) {
+        toast.success(`Created "${claudeData.title}"!`);
         return {
-          ...data.result,
-          audioUrl: mixedAudioUrl // Use the real mixed audio
+          title: claudeData.title,
+          concept: claudeData.recommendations.fullDirection,
+          audioUrl: mixedAudioUrl,
+          metadata: { 
+            duration: "3:30", 
+            genre: "Mashup", 
+            energy: "High",
+            artistCredits: claudeData.artistCredits,
+            professionalDirection: claudeData.recommendations
+          }
         };
       } else {
         // Fallback with real audio but generated concept

@@ -2,3 +2,6 @@ project_id = "jndnvpevsgpapntxaaeq"
 
 [functions.generate-mashup]
 verify_jwt = false
+
+[functions.claude-mashup-director]
+verify_jwt = false
