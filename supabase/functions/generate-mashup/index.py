@@ -1,98 +1,120 @@
 import os
 import supabase
 import json
+import requests
+import tempfile
 from flask import Flask, request, jsonify
-import requests # To invoke other functions
+from pydub import AudioSegment
+import rubberband # For time-stretching
 
 app = Flask(__name__)
 
-# Initialize Supabase client
-supabase_url = os.environ.get("SUPABASE_URL")
-supabase_key = os.environ.get("SUPABASE_KEY")
-supabase_client = supabase.create_client(supabase_url, supabase_key)
+# --- Environment Setup ---
+SUPABASE_URL = os.environ.get("SUPABASE_URL")
+SUPABASE_KEY = os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
+supabase_client = supabase.create_client(SUPABASE_URL, SUPABASE_KEY)
 
 # --- Function Invocation ---
 def invoke_function(function_name, payload):
-    """Invokes another Supabase function."""
-    # Note: This requires setting up the service role key for server-to-server calls
-    service_role_key = os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
     headers = {
-        'Authorization': f'Bearer {service_role_key}',
+        'Authorization': f'Bearer {SUPABASE_KEY}',
         'Content-Type': 'application/json'
     }
-    response = requests.post(f"{supabase_url}/functions/v1/{function_name}", json=payload, headers=headers)
+    response = requests.post(f"{SUPABASE_URL}/functions/v1/{function_name}", json=payload, headers=headers)
     response.raise_for_status()
     return response.json()
 
 # --- Audio Mixing Logic ---
-def execute_mashup_plan(plan, stem_data):
-    """
-    Executes the mashup plan from the AI director.
-    This is where the core audio processing will happen.
-    It will use libraries like pydub and pyrubberband.
-    """
-    # TODO: Parse the structured JSON "score" from the AI director
+def execute_mashup_plan(plan, all_song_data):
+    stem_lookup = {song['song_id']: song['stems'] for song in all_song_data}
+    target_bpm = plan.get('global', {}).get('targetBPM')
 
-    # TODO: Download the necessary stems from Supabase Storage
+    final_mashup = AudioSegment.silent(duration=0)
 
-    # TODO: Use pydub/librosa to slice, dice, crossfade, and mix the stems
-    # according to the timeline in the plan.
+    with tempfile.TemporaryDirectory() as temp_dir:
+        for section in plan.get('timeline', []):
+            section_duration_ms = int(section.get('duration_seconds', 0) * 1000)
+            if section_duration_ms <= 0:
+                continue
 
-    # TODO: Apply pitch shifting or time stretching as required by the plan.
+            section_segment = AudioSegment.silent(duration=section_duration_ms)
 
-    # For now, return a path to a dummy output file
-    output_path = "/tmp/final_mashup.mp3"
-    with open(output_path, 'w') as f:
-        f.write("dummy mashup content")
-    return output_path
+            for layer in section.get('layers', []):
+                song_id = layer.get('songId')
+                stem_name = layer.get('stem')
 
-# --- Supabase Storage ---
-def upload_to_storage(file_path, storage_path):
-    """Uploads the final mashup to Supabase Storage."""
-    with open(file_path, 'rb') as f:
-        supabase_client.storage.from_('mashups').upload(storage_path, f)
-    return supabase_client.storage.from_('mashups').get_public_url(storage_path)
+                song_data = next((s for s in all_song_data if s['song_id'] == song_id), None)
+                if not song_data:
+                    continue
 
+                stem_url = song_data['stems'].get(stem_name)
+                if not stem_url:
+                    continue
+
+                temp_path = os.path.join(temp_dir, f"{song_id}_{stem_name}.wav")
+                response = requests.get(stem_url)
+                response.raise_for_status()
+                with open(temp_path, 'wb') as f:
+                    f.write(response.content)
+
+                stem_audio = AudioSegment.from_file(temp_path)
+
+                # Time-stretch to target BPM if needed
+                source_bpm = song_data.get('analysis', {}).get('bpm')
+                if target_bpm and source_bpm and source_bpm != target_bpm:
+                    stretch_ratio = target_bpm / source_bpm
+                    # This requires rubberband-cli to be installed in the function environment
+                    y = np.array(stem_audio.get_array_of_samples())
+                    y_stretched = rubberband.stretch(y, stem_audio.frame_rate, stretch_ratio)
+                    stem_audio = AudioSegment(y_stretched.tobytes(), frame_rate=stem_audio.frame_rate, sample_width=stem_audio.sample_width, channels=stem_audio.channels)
+
+                stem_audio += layer.get('volume_db', 0)
+
+                if len(stem_audio) < section_duration_ms:
+                    stem_audio = stem_audio * (section_duration_ms // len(stem_audio) + 1)
+
+                stem_audio = stem_audio[:section_duration_ms]
+                section_segment = section_segment.overlay(stem_audio)
+
+            final_mashup += section_segment
+
+        output_path = os.path.join(temp_dir, "final_mashup.mp3")
+        final_mashup.export(output_path, format="mp3")
+
+        # Return the content of the file, not the path
+        with open(output_path, 'rb') as f:
+            return f.read()
+
+# --- Main Route ---
 @app.route('/', methods=['POST'])
 def generate_mashup_route():
     try:
         data = request.get_json()
-        songs = data.get('songs') # Expects a list of song objects with audio_url, id, etc.
-
+        songs = data.get('songs')
         if not songs or len(songs) < 2:
             return jsonify({"error": "At least two songs are required"}), 400
 
-        # Step 1: Get stems and analysis for each song
-        all_song_data = []
-        for song in songs:
-            stem_payload = {"audio_url": song['audio_url'], "song_id": song['id']}
-            song_data = invoke_function('stem-separation', stem_payload)
-            all_song_data.append(song_data['data'])
+        all_song_data = [invoke_function('stem-separation', s)['data'] for s in songs]
 
-        # Step 2: Get the creative direction from the AI director
-        director_payload = {
-            "songs": songs,
-            "analysisData": [s['analysis'] for s in all_song_data]
-        }
-        mashup_plan = invoke_function('claude-mashup-director', director_payload)
+        mashup_plan = invoke_function('claude-mashup-director', {"songs": songs, "analysisData": [s['analysis'] for s in all_song_data]})
 
-        # Step 3: Execute the mashup plan
-        final_mashup_path = execute_mashup_plan(mashup_plan, all_song_data)
+        final_mashup_content = execute_mashup_plan(mashup_plan, all_song_data)
 
-        # Step 4: Upload the final result to storage
-        mashup_id = f"mashup_{songs[0]['id']}_{songs[1]['id']}"
-        final_storage_path = f"{mashup_id}/final.mp3"
-        final_mashup_url = upload_to_storage(final_mashup_path, final_storage_path)
+        mashup_id = f"mashup_{songs[0]['song_id']}_{songs[1]['song_id']}_{uuid.uuid4()}"
+        storage_path = f"generated/{mashup_id}.mp3"
+
+        supabase_client.storage.from_('mashups').upload(storage_path, final_mashup_content, {'contentType': 'audio/mp3', 'upsert': 'true'})
+        final_mashup_url = supabase_client.storage.from_('mashups').get_public_url(storage_path)
 
         return jsonify({
-            "status": "success",
+            "success": True,
             "mashup_url": final_mashup_url,
             "title": mashup_plan.get("title", "Untitled Mashup"),
             "concept": mashup_plan.get("concept", "A cool mashup.")
-        }), 200
+        })
 
     except Exception as e:
         return jsonify({"error": "Failed to generate mashup", "details": str(e)}), 500
 
 if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0', port=int(os.environ.get('PORT', 8080)))
+    app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 8080)))
