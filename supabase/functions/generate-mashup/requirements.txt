@@ -1,0 +1,15 @@
+# Core web server
+flask
+
+# Supabase client
+supabase
+
+# For making HTTP requests to other functions
+requests
+
+# Audio processing
+librosa
+soundfile
+spleeter # Though not used directly, good to have for consistency
+pyrubberband
+pydub
