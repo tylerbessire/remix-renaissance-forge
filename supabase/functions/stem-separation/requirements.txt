@@ -1,0 +1,17 @@
+# Core web server
+Flask
+
+# Supabase client
+supabase
+
+# For making HTTP requests
+requests
+
+# Audio processing
+librosa
+numpy
+soundfile
+spleeter==2.3.0 # Pinning version for stability
+
+# For handling temporary files and directories
+tempfile

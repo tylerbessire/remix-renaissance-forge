@@ -14,63 +14,75 @@ serve(async (req) => {
   try {
     const { songs, analysisData } = await req.json();
     
-    console.log('Claude analyzing songs for mashup direction:', songs.map(s => s.name));
-
     const anthropicApiKey = Deno.env.get('ANTHROPIC_API_KEY');
     if (!anthropicApiKey) {
-      console.error('ANTHROPIC_API_KEY not configured');
-      return new Response(
-        JSON.stringify({ 
-          error: 'ANTHROPIC_API_KEY not configured',
-          success: false 
-        }),
-        { 
-          status: 500, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
-      );
+      throw new Error("ANTHROPIC_API_KEY not configured");
     }
 
-    // Prepare analysis context for Claude
+    // Prepare detailed context for the AI, using the rich data from our new analysis function
     const songsContext = songs.map((song: any, index: number) => {
       const analysis = analysisData?.[index] || {};
-      return `Song ${index + 1}: "${song.name}" by ${song.artist}
-- Tempo: ${analysis.tempo || 'Unknown'} BPM
-- Energy: ${analysis.energy || 'Unknown'}
-- Key: ${analysis.key || 'Unknown'}
-- Genre: ${analysis.genre || 'Unknown'}
-- Danceability: ${analysis.danceability || 'Unknown'}
-- Valence: ${analysis.valence || 'Unknown'}`;
+      return `
+Song ${index + 1} (id: "${song.song_id}"): "${song.name}" by ${song.artist}
+- BPM: ${analysis.bpm?.toFixed(2)}
+- Key: ${analysis.key}
+- Duration: ${analysis.duration_seconds?.toFixed(2)}s
+- Energy: ${analysis.energy?.toFixed(3)}
+- Harmonic Complexity: ${analysis.harmonic_complexity?.toFixed(3)}
+- Chroma Profile: [${analysis.chroma_profile?.map(v => v.toFixed(3)).join(', ')}]
+      `.trim();
     }).join('\n\n');
 
-    const prompt = `You are a world-class professional mashup artist with years of experience creating viral mashups. You understand music theory, production techniques, and what makes mashups work.
+    const prompt = `
+You are a world-class professional mashup artist and DJ, acting as an AI music production engine. Your task is to create a detailed, structured production plan for a mashup of two or more songs.
 
-I have ${songs.length} songs that I want to mashup:
+The final output MUST be a single, valid JSON object. Do not include any text, markdown, or formatting outside of the JSON object itself.
 
+I have ${songs.length} songs with the following musical analysis:
 ${songsContext}
 
-As a professional mashup artist, provide your expert creative direction for this mashup:
+Based on this data, create a production plan with the following JSON structure:
 
-1. **Overall Concept**: What's your creative vision? What story does this mashup tell?
+{
+  "title": "A creative, catchy title for the mashup",
+  "artistCredits": "Artist A vs. Artist B",
+  "concept": "A brief, 1-2 sentence narrative or thematic concept for the mashup.",
+  "global": {
+    "targetBPM": 125,
+    "targetKey": "C Minor"
+  },
+  "timeline": [
+    {
+      "time_start": "0:00",
+      "duration_seconds": 15,
+      "description": "Intro",
+      "layers": [
+        { "songId": "${songs[0].song_id}", "stem": "drums", "volume_db": -3, "filter": "high-pass 80Hz" },
+        { "songId": "${songs[1].song_id}", "stem": "other", "volume_db": -6, "effect": "reverb" }
+      ]
+    },
+    {
+      "time_start": "0:15",
+      "duration_seconds": 30,
+      "description": "Verse 1",
+      "layers": [
+        { "songId": "${songs[0].song_id}", "stem": "vocals", "volume_db": 0 },
+        { "songId": "${songs[1].song_id}", "stem": "bass", "volume_db": -1.5 },
+        { "songId": "${songs[0].song_id}", "stem": "drums", "volume_db": -3 }
+      ]
+    }
+  ]
+}
 
-2. **Stem Decisions**: 
-   - Which song's vocals should be primary? Why?
-   - Which song's instrumental/beat should be the foundation?
-   - Any vocal harmonies or call-and-response opportunities?
+- **title**: A creative title for the mashup.
+- **artistCredits**: A string crediting the original artists.
+- **concept**: A short description of the creative vision.
+- **global**: Overall settings for the entire track. Use the provided analysis to pick a good targetBPM and targetKey.
+- **timeline**: An array of sequential sections. Each section has a start time, duration in seconds, description, and a list of layers.
+- **layers**: Each layer specifies which songId and stem to use, its volume in dB (0 is full volume, negative values are quieter), and any optional filters or effects.
 
-3. **Technical Approach**:
-   - Key changes needed (if any)?
-   - Tempo adjustments or time-stretching?
-   - Transition points and crossfade techniques?
-
-4. **Creative Effects**:
-   - What effects would enhance the mashup?
-   - Any creative filtering or processing?
-   - Breakdown sections or build-ups?
-
-5. **Professional Tips**: What makes this mashup special? What should I watch out for?
-
-Give me specific, actionable advice like you're mentoring a fellow producer. Be creative but practical.`;
+Generate a complete timeline for a 2-3 minute mashup. Be creative and musically intelligent. Ensure the transitions are smooth and the combination of stems makes musical sense. The songId for each layer must match one of the song IDs provided above.
+`;
 
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
@@ -80,43 +92,34 @@ Give me specific, actionable advice like you're mentoring a fellow producer. Be 
         'anthropic-version': '2023-06-01',
       },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 2000,
-        messages: [
-          {
-            role: 'user',
-            content: prompt
-          }
-        ],
-        temperature: 0.8
+        model: 'claude-3-sonnet-20240229', // Using a model known for strong JSON output
+        max_tokens: 4000,
+        messages: [{ role: 'user', content: prompt }],
+        temperature: 0.7,
       }),
     });
 
     if (!response.ok) {
-      throw new Error(`Anthropic API error: ${response.status}`);
+      const errorBody = await response.text();
+      throw new Error(`Anthropic API error: ${response.status} ${errorBody}`);
     }
 
-    const data = await response.json();
-    const creativeDirection = data.content[0].text;
+    const responseData = await response.json();
+    const rawText = responseData.content[0].text;
 
-    // Parse Claude's response into structured recommendations
-    const recommendations = {
-      concept: creativeDirection.match(/\*\*Overall Concept\*\*:(.*?)(?=\*\*|$)/s)?.[1]?.trim() || '',
-      stemDecisions: creativeDirection.match(/\*\*Stem Decisions\*\*:(.*?)(?=\*\*|$)/s)?.[1]?.trim() || '',
-      technicalApproach: creativeDirection.match(/\*\*Technical Approach\*\*:(.*?)(?=\*\*|$)/s)?.[1]?.trim() || '',
-      creativeEffects: creativeDirection.match(/\*\*Creative Effects\*\*:(.*?)(?=\*\*|$)/s)?.[1]?.trim() || '',
-      professionalTips: creativeDirection.match(/\*\*Professional Tips\*\*:(.*?)(?=\*\*|$)/s)?.[1]?.trim() || '',
-      fullDirection: creativeDirection
-    };
-
-    console.log('Claude provided creative direction for mashup');
+    // Attempt to parse the JSON response
+    let mashupPlan;
+    try {
+      mashupPlan = JSON.parse(rawText);
+    } catch (e) {
+      console.error("Failed to parse JSON from Claude's response:", rawText);
+      throw new Error("AI returned a malformed creative plan. Could not parse JSON.");
+    }
 
     return new Response(
       JSON.stringify({ 
         success: true, 
-        recommendations,
-        title: `Professional Mashup: ${songs[0]?.name} × ${songs[1]?.name}`,
-        artistCredits: songs.map((s: any) => s.artist).join(' × ')
+        ...mashupPlan
       }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
@@ -124,7 +127,7 @@ Give me specific, actionable advice like you're mentoring a fellow producer. Be 
     );
 
   } catch (error) {
-    console.error('Error in claude-mashup-director:', error);
+    console.error('Error in claude-mashup-director:', error.message);
     return new Response(
       JSON.stringify({ 
         error: 'Failed to get creative direction', 
