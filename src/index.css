@@ -58,18 +58,6 @@
       hsl(315, 80%, 60%),
       hsl(0, 80%, 60%)
     );
-
-    /* Apply the rainbow animation to the main background class */
-    .bg-gradient-vibrant {
-      background: var(--gradient-rainbow-bg);
-      background-size: 400% 400%;
-      animation: rainbow-bg-animation 15s ease infinite;
-    }
-
-    /* Keep some old tokens for compatibility if they are used elsewhere */
-    --sunset-glow: 35 100% 70%;
-    --twilight-pink: 320 85% 75%;
-    --cyan-bright: 190 100% 70%;
   }
 
   .dark {
@@ -94,9 +82,14 @@
     --input: 220 15% 18%;
     --ring: 190 100% 70%;
   }
-}
 
-@layer base {
+  /* Apply the rainbow animation to the main background class */
+  .bg-gradient-vibrant {
+    background: var(--gradient-rainbow-bg);
+    background-size: 400% 400%;
+    animation: rainbow-bg-animation 15s ease infinite;
+  }
+
   * {
     @apply border-border;
   }
