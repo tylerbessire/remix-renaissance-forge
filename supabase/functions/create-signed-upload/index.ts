@@ -29,7 +29,7 @@ serve(async (req) => {
     }
 
     const supabase = createClient(supabaseUrl, serviceRole);
-    const { data, error } = await supabase.storage.from('mashups').createSignedUploadUrl(path);
+    const { data, error } = await supabase.storage.from('mashups').createSignedUploadUrl(path, { upsert: true });
 
     if (error || !data) {
       throw new Error(error?.message || 'Failed to create signed upload URL');
