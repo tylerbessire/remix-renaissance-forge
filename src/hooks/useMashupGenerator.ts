@@ -25,9 +25,18 @@ interface MashupResult {
 
 interface MashupResponse {
   success: boolean;
-  mashup_url: string; // The storage path of the final mashup
-  title: string;
-  concept: string;
+  // Newer response shape
+  result?: {
+    title?: string;
+    concept?: string;
+    audioUrl?: string;        // direct URL
+    storage_path?: string;    // storage path
+    mashup_url?: string;      // alias for storage path
+  };
+  // Legacy/alternate fields
+  mashup_url?: string;
+  title?: string;
+  concept?: string;
   details?: string;
 }
 
@@ -112,24 +121,36 @@ export const useMashupGenerator = () => {
         throw new Error(data?.details || "The mashup could not be created by the AI.");
       }
 
-      // --- Security: Unrestricted Public Access to Uploaded Files ---
-      // Create a signed URL for the final mashup, which expires after 1 hour.
-      const { data: signedUrlData, error: signedUrlError } = await supabase.storage
-        .from('mashups')
-        .createSignedUrl(data.mashup_url, 3600); // 3600 seconds = 1 hour
+      // Determine file location from function response and create signed URL only when needed
+      const title = data.result?.title ?? data.title ?? 'Your Mashup';
+      const concept = data.result?.concept ?? data.concept ?? '';
+      const storagePath = data.result?.storage_path ?? data.result?.mashup_url ?? data.mashup_url;
+      const directUrl = data.result?.audioUrl;
 
-      if (signedUrlError) {
-        throw new Error(`Could not create secure link for the mashup: ${signedUrlError.message}`);
+      let finalUrl: string | undefined;
+      if (directUrl && /^https?:\/\//.test(directUrl)) {
+        finalUrl = directUrl;
+      } else if (storagePath) {
+        const { data: signedUrlData, error: signedUrlError } = await supabase.storage
+          .from('mashups')
+          .createSignedUrl(storagePath, 3600); // 3600 seconds = 1 hour
+
+        if (signedUrlError || !signedUrlData?.signedUrl) {
+          throw new Error(`Could not create secure link for the mashup: ${signedUrlError?.message || 'Unknown error'}`);
+        }
+        finalUrl = signedUrlData.signedUrl;
+      } else {
+        throw new Error('Mashup function did not return a file location.');
       }
 
       setProcessingStep("Mashup complete!");
       setProgress(100);
-      toast.success(`Created "${data.title}"!`);
+      toast.success(`Created "${title}"!`);
 
       return {
-        title: data.title,
-        concept: data.concept,
-        audioUrl: signedUrlData.signedUrl,
+        title,
+        concept,
+        audioUrl: finalUrl,
       };
 
     } catch (error) {
