@@ -14,7 +14,27 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      mashup_cache: {
+        Row: {
+          audio_hash: string
+          created_at: string
+          id: number
+          metadata: Json
+        }
+        Insert: {
+          audio_hash: string
+          created_at?: string
+          id?: number
+          metadata: Json
+        }
+        Update: {
+          audio_hash?: string
+          created_at?: string
+          id?: number
+          metadata?: Json
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

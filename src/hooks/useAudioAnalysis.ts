@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { audioAnalyzer, AudioAnalysisResult } from '@/utils/audioAnalysis';
+import { audioAnalyzer, type AudioAnalysisResult } from '@/utils/audioAnalysis';
 import { toast } from 'sonner';
 
 interface Song {

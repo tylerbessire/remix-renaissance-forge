@@ -5,3 +5,9 @@ verify_jwt = false
 
 [functions.claude-mashup-director]
 verify_jwt = false
+
+[functions.stem-separation]
+verify_jwt = false
+
+[functions.create-signed-upload]
+verify_jwt = false

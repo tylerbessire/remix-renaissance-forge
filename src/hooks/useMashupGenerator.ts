@@ -48,12 +48,23 @@ export const useMashupGenerator = () => {
     const safeFilename = sanitizeFilename(song.file.name);
     const filePath = `uploads/${song.id}/${safeFilename}`;
 
+    // Request a signed upload URL from our Edge Function (uses service role)
+    const { data: signedUpload, error: signedErr } = await supabase.functions.invoke<{ path: string; signedUrl: string; token: string }>('create-signed-upload', {
+      body: {
+        songId: song.id,
+        fileName: safeFilename,
+      },
+    });
+
+    if (signedErr || !signedUpload) {
+      throw new Error(`Failed to prepare secure upload for ${song.name}: ${signedErr?.message || 'Unknown error'}.`);
+    }
+
+    // Perform the upload using the signed token
     const { error: uploadError } = await supabase.storage
       .from('mashups')
-      .upload(filePath, song.file, {
-        cacheControl: '3600',
-        upsert: true,
-      });
+      .uploadToSignedUrl(signedUpload.path, signedUpload.token, song.file);
+
 
     if (uploadError) {
       throw new Error(`Failed to upload ${song.name}: ${uploadError.message}.`);

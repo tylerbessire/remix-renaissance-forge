@@ -100,7 +100,7 @@ def process_audio_route():
                     storage_path = f"{audio_hash}/{stem_file}"
                     with open(local_path, 'rb') as f:
                         supabase_client.storage.from_('mashups').upload(storage_path, f, {'contentType': 'audio/wav', 'upsert': 'true'})
-                    stem_urls[stem_name] = supabase_client.storage.from_('mashups').get_public_url(storage_path)
+                    stem_urls[stem_name] = storage_path
 
             # 4. Compile Metadata
             full_metadata = {

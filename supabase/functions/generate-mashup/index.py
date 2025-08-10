@@ -3,9 +3,11 @@ import supabase
 import json
 import requests
 import tempfile
+import uuid
+import numpy as np
 from flask import Flask, request, jsonify
 from pydub import AudioSegment
-import rubberband # For time-stretching
+import rubberband  # For time-stretching
 
 app = Flask(__name__)
 
@@ -47,12 +49,16 @@ def execute_mashup_plan(plan, all_song_data):
                 if not song_data:
                     continue
 
-                stem_url = song_data['stems'].get(stem_name)
-                if not stem_url:
+                stem_path = song_data['stems'].get(stem_name)
+                if not stem_path:
                     continue
 
+                # Create a short-lived signed URL to download the private stem
+                signed = supabase_client.storage.from_('mashups').create_signed_url(stem_path, 3600)
+                signed_url = signed.get('signed_url') or signed.get('signedURL')
+
                 temp_path = os.path.join(temp_dir, f"{song_id}_{stem_name}.wav")
-                response = requests.get(stem_url)
+                response = requests.get(signed_url)
                 response.raise_for_status()
                 with open(temp_path, 'wb') as f:
                     f.write(response.content)
@@ -94,7 +100,19 @@ def generate_mashup_route():
         if not songs or len(songs) < 2:
             return jsonify({"error": "At least two songs are required"}), 400
 
-        all_song_data = [invoke_function('stem-separation', s)['data'] for s in songs]
+        processed_songs = []
+        for s in songs:
+            # Create a short-lived signed URL for the uploaded user track
+            signed = supabase_client.storage.from_('mashups').create_signed_url(s['storage_path'], 3600)
+            signed_url = signed.get('signed_url') or signed.get('signedURL')
+            stem_resp = invoke_function('stem-separation', { 'audio_url': signed_url })
+            song_data = stem_resp['data']
+            # Attach the input song id/name for downstream referencing
+            song_data['song_id'] = s.get('song_id') or s.get('id')
+            song_data['name'] = s.get('name')
+            song_data['artist'] = s.get('artist')
+            processed_songs.append(song_data)
+        all_song_data = processed_songs
 
         mashup_plan = invoke_function('claude-mashup-director', {"songs": songs, "analysisData": [s['analysis'] for s in all_song_data]})
 
