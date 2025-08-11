@@ -30,7 +30,37 @@ export const MashupZone = ({
   onRaveModeChange,
   className 
 }: MashupZoneProps) => {
-  const { generateMashup, isProcessing, progress, processingStep, result } = useMashupGenerator();
+// File: src/hooks/useMashupGenerator.ts
+
+export const useMashupGenerator = () => {
+  // Hold the last mashup result for consumers
+  const [result, setResult] = useState<MashupResult | null>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [processingStep, setProcessingStep] = useState("");
+
+  const generateMashup = async (songs: Song[]): Promise<MashupResult | null> => {
+    …
+    // after successfully creating signedUrlData
+    const mashupResult = {
+      title: data.title,
+      concept: data.concept,
+      audioUrl: signedUrlData.signedUrl,
+    };
+    setResult(mashupResult);
+    return mashupResult;
+    …
+  };
+
+  // Expose the latest result alongside status flags
+  return {
+    generateMashup,
+    isProcessing,
+    progress,
+    processingStep,
+    result,
+  };
+};
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   // Cleanup audio when component unmounts or result changes
