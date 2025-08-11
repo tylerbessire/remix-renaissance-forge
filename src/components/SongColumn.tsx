@@ -12,7 +12,8 @@ interface Song {
   id: string;
   name: string;
   artist: string;
-  file: File;
+  file?: File;
+  storage_path?: string;
 }
 
 interface SongColumnProps {
@@ -164,9 +165,9 @@ export const SongColumn = ({
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => analyzeSong(song)}
+                      onClick={() => song.file && analyzeSong(song)}
                       className="opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-electric-blue"
-                      disabled={isAnalyzing}
+                      disabled={isAnalyzing || !song.file}
                     >
                       <Brain className="h-4 w-4" />
                     </Button>
