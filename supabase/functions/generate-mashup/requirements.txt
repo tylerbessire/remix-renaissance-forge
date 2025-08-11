@@ -1,15 +1,7 @@
-# Core web server
-flask
-
-# Supabase client
-supabase
-
-# For making HTTP requests to other functions
-requests
-
-# Audio processing
-librosa
-soundfile
-spleeter # Though not used directly, good to have for consistency
-pyrubberband
-pydub
+Flask>=3.0.0
+supabase-py>=0.2.0
+requests>=2.31.0
+librosa>=0.10.0
+pydub>=0.25.0
+pyrubberband>=0.3.0
+numpy>=1.26.0

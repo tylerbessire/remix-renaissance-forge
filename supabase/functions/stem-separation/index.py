@@ -61,8 +61,9 @@ def analyze_audio(file_path):
 def process_audio_route():
     data = request.get_json()
     audio_url = data.get('audio_url')
-    if not audio_url:
-        return jsonify({"error": "audio_url is required"}), 400
+    song_id = data.get('song_id') # Get song_id from the request
+    if not audio_url or not song_id:
+        return jsonify({"error": "audio_url and song_id are required"}), 400
 
     with tempfile.TemporaryDirectory() as temp_dir:
         try:
@@ -104,6 +105,7 @@ def process_audio_route():
 
             # 4. Compile Metadata
             full_metadata = {
+                "song_id": song_id, # Include the song_id in the final output
                 "audio_hash": audio_hash,
                 "analysis": analysis_metadata,
                 "stems": stem_urls,
