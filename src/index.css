@@ -4,66 +4,48 @@
 
 @layer base {
   :root {
-    /* Modern Dark Theme - Inspired by Glassmorphism & Neobrutalism */
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
-
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
-
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
-
-    --primary: 330 85% 60%; /* Vibrant Magenta */
-    --primary-foreground: 210 40% 98%;
-
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
-
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 330 85% 60%;
-
+    --background: 48 33% 98%; /* Off-white */
+    --foreground: 24 10% 10%; /* Dark Brown for text */
+    --card: 48 33% 96%;
+    --card-foreground: 24 10% 10%;
+    --popover: 48 33% 98%;
+    --popover-foreground: 24 10% 10%;
+    --primary: 25 95% 53%; /* Burnt Orange */
+    --primary-foreground: 48 33% 98%;
+    --secondary: 35 33% 85%; /* Light Brown Accent */
+    --secondary-foreground: 24 10% 10%;
+    --muted: 35 33% 85%;
+    --muted-foreground: 24 10% 30%;
+    --accent: 35 33% 75%; /* Darker Brown Accent */
+    --accent-foreground: 24 10% 10%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 48 33% 98%;
+    --border: 35 33% 85%;
+    --input: 35 33% 90%;
+    --ring: 25 95% 53%;
     --radius: 0.5rem;
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
-
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
-
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
-
-    --primary: 330 85% 60%;
-    --primary-foreground: 210 40% 98%;
-
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
-
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 330 85% 60%;
+    --background: 48 33% 98%;
+    --foreground: 24 10% 10%;
+    --card: 48 33% 96%;
+    --card-foreground: 24 10% 10%;
+    --popover: 48 33% 98%;
+    --popover-foreground: 24 10% 10%;
+    --primary: 25 95% 53%;
+    --primary-foreground: 48 33% 98%;
+    --secondary: 35 33% 85%;
+    --secondary-foreground: 24 10% 10%;
+    --muted: 35 33% 85%;
+    --muted-foreground: 24 10% 30%;
+    --accent: 35 33% 75%;
+    --accent-foreground: 24 10% 10%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 48 33% 98%;
+    --border: 35 33% 85%;
+    --input: 35 33% 90%;
+    --ring: 25 95% 53%;
   }
 }
 
@@ -73,20 +55,5 @@
   }
   body {
     @apply bg-background text-foreground;
-  }
-}
-
-/* Custom utility classes for the new design */
-@layer utilities {
-  .bg-glass {
-    @apply bg-secondary/60 backdrop-blur-lg border border-white/10;
-  }
-
-  .text-glow {
-    text-shadow: 0 0 8px hsl(var(--primary) / 0.5);
-  }
-
-  .text-input-custom {
-    @apply text-[hsl(28,100%,50%)] font-semibold;
   }
 }

@@ -54,7 +54,6 @@ export const SongColumn = ({
 
     onSongsChange([...songs, ...newSongs]);
     
-    // Auto-analyze new songs
     newSongs.forEach(song => {
       analyzeSong(song).catch(error => {
         console.error('Auto-analysis failed:', error);
@@ -67,23 +66,14 @@ export const SongColumn = ({
   };
 
   const handleDragStart = (e: React.DragEvent, song: Song) => {
-    // Only transfer metadata, not the File object (to avoid serialization issues)
-    const songMetadata = {
-      id: song.id,
-      name: song.name,
-      artist: song.artist
-    };
+    const songMetadata = { id: song.id, name: song.name, artist: song.artist };
     e.dataTransfer.setData('application/json', JSON.stringify(songMetadata));
     onDragStart(song, columnTitle);
   };
 
   return (
-    <Card className={cn(
-      "bg-cobalt-mid border-cobalt-light p-6 transition-all duration-300 hover:shadow-purple",
-      className
-    )}>
+    <Card className={cn("bg-card border p-4", className)}>
       <div className="space-y-4">
-        {/* Column Header */}
         <div className="flex items-center justify-between">
           {isEditing ? (
             <Input
@@ -91,21 +81,20 @@ export const SongColumn = ({
               onChange={(e) => setColumnTitle(e.target.value)}
               onBlur={() => setIsEditing(false)}
               onKeyDown={(e) => e.key === 'Enter' && setIsEditing(false)}
-              className="bg-cobalt-deep border-sunset-glow text-foreground font-semibold"
+              className="font-semibold"
               autoFocus
             />
           ) : (
             <h3 
-              className="text-lg font-semibold text-foreground cursor-pointer hover:text-sunset-glow transition-colors"
+              className="text-lg font-semibold cursor-pointer"
               onClick={() => setIsEditing(true)}
             >
               {columnTitle}
             </h3>
           )}
-          <Music className="h-5 w-5 text-twilight-pink" />
+          <Music className="h-5 w-5 text-muted-foreground" />
         </div>
 
-        {/* Upload Zone */}
         <div className="relative">
           <input
             type="file"
@@ -117,10 +106,10 @@ export const SongColumn = ({
           />
           <label
             htmlFor={`upload-${columnTitle}`}
-            className="flex items-center justify-center p-4 border-2 border-dashed border-cobalt-light rounded-lg bg-cobalt-deep/50 hover:border-sunset-glow hover:bg-cobalt-deep transition-all cursor-pointer group"
+            className="flex items-center justify-center p-4 border-2 border-dashed rounded-lg hover:border-primary transition-all cursor-pointer group"
           >
             <div className="text-center">
-              <Plus className="h-8 w-8 text-muted-foreground group-hover:text-sunset-glow mx-auto mb-2 transition-colors" />
+              <Plus className="h-8 w-8 text-muted-foreground group-hover:text-primary mx-auto mb-2 transition-colors" />
               <p className="text-sm text-muted-foreground group-hover:text-foreground transition-colors">
                 Drop tracks or click to upload
               </p>
@@ -128,74 +117,40 @@ export const SongColumn = ({
           </label>
         </div>
 
-        {/* Songs List */}
         <div className="space-y-3 max-h-96 overflow-y-auto">
           {songs.map((song) => {
             const analysis = getAnalysis(song.id);
-            
             return (
               <div key={song.id} className="space-y-2">
                 <div
                   draggable
                   onDragStart={(e) => handleDragStart(e, song)}
-                  className="group flex items-center justify-between p-3 bg-cobalt-deep rounded-lg border border-cobalt-light hover:border-sunset-glow hover:shadow-glow transition-all cursor-grab active:cursor-grabbing hover:scale-102"
+                  className="group flex items-center justify-between p-3 bg-background rounded-lg border transition-all cursor-grab active:cursor-grabbing"
                 >
                   <div className="flex items-center gap-3 flex-1 min-w-0">
-                    <GripVertical className="h-4 w-4 text-muted-foreground group-hover:text-sunset-glow transition-colors" />
+                    <GripVertical className="h-4 w-4 text-muted-foreground" />
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <p className="text-sm font-medium text-foreground truncate">
-                          {song.name}
-                        </p>
-                        {analysis && (
-                          <Sparkles className="h-3 w-3 text-electric-green animate-pulse" />
-                        )}
-                      </div>
-                      <p className="text-xs text-muted-foreground truncate">
-                        {song.artist}
-                      </p>
-                      {analysis?.features.genre && (
-                        <p className="text-xs text-twilight-pink">
-                          {analysis.features.genre} • {analysis.features.tempo} BPM
-                        </p>
-                      )}
+                      <p className="text-sm font-medium truncate">{song.name}</p>
+                      <p className="text-xs text-muted-foreground truncate">{song.artist}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-1">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => song.file && analyzeSong(song)}
-                      className="opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-electric-blue"
-                      disabled={isAnalyzing || !song.file}
-                    >
+                    <Button variant="ghost" size="sm" onClick={() => analyzeSong(song)} disabled={isAnalyzing || !song.file}>
                       <Brain className="h-4 w-4" />
                     </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => removeSong(song.id)}
-                      className="opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive"
-                    >
+                    <Button variant="ghost" size="sm" onClick={() => removeSong(song.id)} className="hover:text-destructive">
                       <X className="h-4 w-4" />
                     </Button>
                   </div>
                 </div>
-                
-                {/* Analysis Display */}
-                {analysis && (
-                  <AudioAnalysisDisplay 
-                    features={analysis.features} 
-                    className="ml-6 text-xs"
-                  />
-                )}
+                {analysis && <AudioAnalysisDisplay features={analysis.features} />}
               </div>
             );
           })}
         </div>
 
         {songs.length > 0 && (
-          <div className="text-xs text-muted-foreground text-center pt-2 border-t border-cobalt-light">
+          <div className="text-xs text-muted-foreground text-center pt-2 border-t">
             {songs.length} track{songs.length !== 1 ? 's' : ''} loaded
           </div>
         )}
