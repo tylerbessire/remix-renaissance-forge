@@ -61,6 +61,7 @@ export const YouTubeSearch = ({ onSongSelected }: YouTubeSearchProps) => {
         <div className="flex gap-2 mb-4">
           <Input
             placeholder="e.g., 'Never Gonna Give You Up'"
+            className="text-input-custom"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
