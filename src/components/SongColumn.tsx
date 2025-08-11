@@ -2,11 +2,8 @@ import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Music, Plus, X, GripVertical, Brain, Sparkles } from "lucide-react";
+import { Music, Plus, X, GripVertical } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { AudioAnalysisDisplay } from "@/components/AudioAnalysisDisplay";
-import { useAudioAnalysis } from "@/hooks/useAudioAnalysis";
-import { toast } from "sonner";
 
 interface Song {
   id: string;
@@ -32,33 +29,21 @@ export const SongColumn = ({
 }: SongColumnProps) => {
   const [isEditing, setIsEditing] = useState(false);
   const [columnTitle, setColumnTitle] = useState(title);
-  const { analyzeSong, getAnalysis, isAnalyzing } = useAudioAnalysis();
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
     if (!files) return;
 
-    const newSongs: Song[] = [];
-    Array.from(files).forEach((file) => {
-      if (file.type.startsWith('audio/')) {
-        const song: Song = {
-          id: crypto.randomUUID(),
-          name: file.name.replace(/\.[^/.]+$/, ""),
-          artist: "Unknown Artist",
-          file
-        };
-        newSongs.push(song);
-      }
-    });
+    const newSongs: Song[] = Array.from(files)
+      .filter(file => file.type.startsWith('audio/'))
+      .map(file => ({
+        id: crypto.randomUUID(),
+        name: file.name.replace(/\.[^/.]+$/, ""),
+        artist: "Unknown Artist",
+        file
+      }));
 
     onSongsChange([...songs, ...newSongs]);
-    
-    // Auto-analyze new songs
-    newSongs.forEach(song => {
-      analyzeSong(song).catch(error => {
-        console.error('Auto-analysis failed:', error);
-      });
-    });
   };
 
   const removeSong = (songId: string) => {
@@ -66,7 +51,6 @@ export const SongColumn = ({
   };
 
   const handleDragStart = (e: React.DragEvent, song: Song) => {
-    // Only transfer metadata, not the File object (to avoid serialization issues)
     const songMetadata = {
       id: song.id,
       name: song.name,
@@ -82,7 +66,6 @@ export const SongColumn = ({
       className
     )}>
       <div className="space-y-4">
-        {/* Column Header */}
         <div className="flex items-center justify-between">
           {isEditing ? (
             <Input
@@ -104,7 +87,6 @@ export const SongColumn = ({
           <Music className="h-5 w-5 text-twilight-pink" />
         </div>
 
-        {/* Upload Zone */}
         <div className="relative">
           <input
             type="file"
@@ -127,70 +109,36 @@ export const SongColumn = ({
           </label>
         </div>
 
-        {/* Songs List */}
         <div className="space-y-3 max-h-96 overflow-y-auto">
-          {songs.map((song) => {
-            const analysis = getAnalysis(song.id);
-            
-            return (
-              <div key={song.id} className="space-y-2">
-                <div
-                  draggable
-                  onDragStart={(e) => handleDragStart(e, song)}
-                  className="group flex items-center justify-between p-3 bg-cobalt-deep rounded-lg border border-cobalt-light hover:border-sunset-glow hover:shadow-glow transition-all cursor-grab active:cursor-grabbing hover:scale-102"
-                >
-                  <div className="flex items-center gap-3 flex-1 min-w-0">
-                    <GripVertical className="h-4 w-4 text-muted-foreground group-hover:text-sunset-glow transition-colors" />
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <p className="text-sm font-medium text-foreground truncate">
-                          {song.name}
-                        </p>
-                        {analysis && (
-                          <Sparkles className="h-3 w-3 text-electric-green animate-pulse" />
-                        )}
-                      </div>
-                      <p className="text-xs text-muted-foreground truncate">
-                        {song.artist}
-                      </p>
-                      {analysis?.features.genre && (
-                        <p className="text-xs text-twilight-pink">
-                          {analysis.features.genre} • {analysis.features.tempo} BPM
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => analyzeSong(song)}
-                      className="opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-electric-blue"
-                      disabled={isAnalyzing}
-                    >
-                      <Brain className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => removeSong(song.id)}
-                      className="opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive"
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
+          {songs.map((song) => (
+            <div key={song.id} className="space-y-2">
+              <div
+                draggable
+                onDragStart={(e) => handleDragStart(e, song)}
+                className="group flex items-center justify-between p-3 bg-cobalt-deep rounded-lg border border-cobalt-light hover:border-sunset-glow hover:shadow-glow transition-all cursor-grab active:cursor-grabbing hover:scale-102"
+              >
+                <div className="flex items-center gap-3 flex-1 min-w-0">
+                  <GripVertical className="h-4 w-4 text-muted-foreground group-hover:text-sunset-glow transition-colors" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-foreground truncate">
+                      {song.name}
+                    </p>
+                    <p className="text-xs text-muted-foreground truncate">
+                      {song.artist}
+                    </p>
                   </div>
                 </div>
-                
-                {/* Analysis Display */}
-                {analysis && (
-                  <AudioAnalysisDisplay 
-                    features={analysis.features} 
-                    className="ml-6 text-xs"
-                  />
-                )}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => removeSong(song.id)}
+                  className="opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
               </div>
-            );
-          })}
+            </div>
+          ))}
         </div>
 
         {songs.length > 0 && (
