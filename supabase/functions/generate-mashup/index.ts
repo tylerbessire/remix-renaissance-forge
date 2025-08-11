@@ -9,10 +9,10 @@ const corsHeaders = {
 
 interface MashupRequest {
   songs: Array<{
-    id: string;
+    song_id: string;
     name: string;
     artist: string;
-    audioData: string; // base64 encoded audio
+    storage_path: string; // path in 'mashups' bucket
   }>;
 }
 
@@ -32,27 +32,39 @@ serve(async (req) => {
       );
     }
 
-    const supabaseUrl = Deno.env.get('SUPABASE_URL');
-    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+const supabaseUrl = Deno.env.get('SUPABASE_URL');
+const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+const supabase = createClient(supabaseUrl!, supabaseServiceKey!);
 
     // Step 1: Perform spectral analysis on each song
     console.log('Performing spectral analysis...');
     const analysisPromises = songs.map(async (song) => {
       try {
-        const response = await fetch(`${supabaseUrl}/functions/v1/spectral-analysis`, {
+        // Create a short-lived signed URL for the uploaded file so Python can download it
+        const { data: signed, error: signErr } = await supabase
+          .storage
+          .from('mashups')
+          .createSignedUrl(song.storage_path, 60 * 60); // 1 hour
+
+        if (signErr || !signed?.signedUrl) {
+          console.warn(`Could not sign URL for ${song.name}:`, signErr?.message);
+          return null;
+        }
+
+        const response = await fetch(`${supabaseUrl}/functions/v1/stem-separation`, {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${supabaseServiceKey}`,
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            audioData: song.audioData,
-            songId: song.id,
+            audio_url: signed.signedUrl,
+            songId: song.song_id,
             metadata: {
               title: song.name,
-              artist: song.artist
-            }
-          })
+              artist: song.artist,
+            },
+          }),
         });
 
         if (!response.ok) {
@@ -68,13 +80,13 @@ serve(async (req) => {
     });
 
     const analyses = await Promise.all(analysisPromises);
-    const validAnalyses = analyses.filter(Boolean);
+    const successfulCount = analyses.filter(Boolean).length;
 
-    console.log(`Completed analysis for ${validAnalyses.length}/${songs.length} songs`);
+    console.log(`Completed analysis for ${successfulCount}/${songs.length} songs`);
 
     // Step 2: Generate concept with Claude using analysis data
     console.log('Generating mashup concept with analysis...');
-    const concept = await generateMashupConceptWithAnalysis(songs, validAnalyses);
+    const concept = await generateMashupConceptWithAnalysis(songs, analyses);
 
     // Step 3: Create mashup title
     console.log('Creating mashup title...');
@@ -84,13 +96,25 @@ serve(async (req) => {
     console.log('Generating music...');
     const audioResult = await generateMashupAudio(songs, concept);
 
+    // Provide a playable URL by signing the first uploaded song for now
+    let playableUrl: string | undefined = undefined;
+    try {
+      const { data: firstSigned } = await supabase
+        .storage
+        .from('mashups')
+        .createSignedUrl(songs[0].storage_path, 60 * 60);
+      playableUrl = firstSigned?.signedUrl;
+    } catch (_) {
+      // ignore, fallback below
+    }
+
     return new Response(
       JSON.stringify({
         success: true,
         result: {
           title,
           concept,
-          audioUrl: audioResult.url,
+          audioUrl: playableUrl || audioResult.url,
           metadata: {
             duration: audioResult.duration,
             genre: audioResult.genre,
@@ -121,20 +145,31 @@ async function generateMashupConceptWithAnalysis(songs: any[], spectralAnalyses:
   // Create detailed song information for Claude
   const songDetails = songs.map((song, i) => {
     const analysis = spectralAnalyses[i];
-    if (!analysis?.analysis) {
+
+    // Try multiple known shapes from our Python analysis service
+    const a = analysis || {};
+    const spectral = a.analysis?.spectralFeatures || {};
+    const chroma = spectral.chromagram || {};
+
+    const tempo = spectral.tempo ?? a.bpm ?? a.analysis?.bpm;
+    const musicalKey = chroma.key ?? a.key ?? a.analysis?.key;
+    const mode = chroma.mode ?? '';
+    const energy = a.analysis?.emotionalArc?.energyLevel ?? a.energy;
+    const structure = a.analysis?.musicalStructure ? Object.keys(a.analysis.musicalStructure) : undefined;
+    const vocalStrong = a.analysis?.mashupPotential?.vocalSuitability?.hasStrongVocals;
+    const compatibility = a.analysis?.mashupPotential?.keyCompatibility ?? a.key_compatibility;
+
+    if (!tempo && !musicalKey && !energy && !structure) {
       return `"${song.name}" by ${song.artist} - Basic audio analysis pending, working with track metadata only.`;
     }
-    
-    const { spectralFeatures, emotionalArc, musicalStructure, mashupPotential } = analysis.analysis;
-    
+
     return `"${song.name}" by ${song.artist}:
-• Tempo: ${spectralFeatures?.tempo || 'Unknown'} BPM
-• Musical Key: ${spectralFeatures?.chromagram?.key || 'Unknown'} ${spectralFeatures?.chromagram?.mode || ''}
-• Overall Emotional Mood: ${emotionalArc?.overallMood || 'Unknown'}
-• Energy Level: ${emotionalArc?.energyLevel || 'Medium'}/10
-• Song Structure: ${Object.keys(musicalStructure || {}).join(', ') || 'Standard pop structure'}
-• Vocal Characteristics: ${mashupPotential?.vocalSuitability?.hasStrongVocals ? 'Prominent vocals with clear harmonies' : 'Instrumental-focused or subtle vocals'}
-• Mashup Compatibility Score: ${Math.round((mashupPotential?.keyCompatibility || 0.5) * 100)}%`;
+• Tempo: ${tempo ?? 'Unknown'} BPM
+• Musical Key: ${musicalKey ?? 'Unknown'} ${mode}
+• Energy Level: ${energy ?? 'Medium'}
+• Song Structure: ${structure?.join(', ') || 'Standard pop structure'}
+• Vocal Characteristics: ${vocalStrong ? 'Prominent vocals with clear harmonies' : 'Instrumental-focused or subtle vocals'}
+• Mashup Compatibility Score: ${compatibility ? Math.round(compatibility * 100) : 75}%`;
   }).join('\n\n');
 
   try {
