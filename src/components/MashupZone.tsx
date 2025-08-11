@@ -180,7 +180,12 @@ export const useMashupGenerator = () => {
                     <Button size="sm" variant="outline" className="border-twilight-pink text-twilight-pink hover:bg-twilight-pink/10" onClick={() => {
                       const link = document.createElement('a');
                       link.href = result.audioUrl;
-                      link.download = `${result.title}.mp3`;
+                      const safeTitle = (result.title || 'mashup')
+                        .replace(/[\\\/:*?"<>|]+/g, '')
+                        .trim()
+                        .replace(/\s+/g, '_')
+                        .slice(0, 100) || 'mashup';
+                      link.download = `${safeTitle}.mp3`;
                       document.body.appendChild(link);
                       link.click();
                       document.body.removeChild(link);
