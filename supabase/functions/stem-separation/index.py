@@ -1,122 +1,102 @@
-import os
-import supabase
-import librosa
-import numpy as np
+import os, io, json, hashlib, tempfile, shutil, time
+from typing import Dict
+import torch
 import soundfile as sf
-from spleeter.separator import Separator
-import hashlib
-import json
-import requests
-import tempfile
-from flask import Flask, request, jsonify
-from datetime import datetime
+import librosa
 
-app = Flask(__name__)
+USE_DEMUCS = os.getenv("USE_DEMUCS", "true").lower() == "true"
 
-# --- Environment Setup ---
-SUPABASE_URL = os.environ.get("SUPABASE_URL")
-SUPABASE_KEY = os.environ.get("SUPABASE_SERVICE_ROLE_KEY") # Use service role key for admin access
-supabase_client = supabase.create_client(SUPABASE_URL, SUPABASE_KEY)
-separator = Separator('spleeter:4stems')
+def sha1_bytes(b: bytes) -> str:
+    return hashlib.sha1(b).hexdigest()
 
-# --- Caching ---
-def get_cached_result(audio_hash):
-    try:
-        response = supabase_client.table('mashup_cache').select('metadata').eq('audio_hash', audio_hash).single().execute()
-        return json.loads(response.data['metadata']) if response.data else None
-    except Exception:
-        return None # Cache miss on any error
+def write_wav(tmpdir: str, raw: bytes, sr=44100):
+    # Decode with librosa to ensure consistent format (mono->stereo later)
+    y, _sr = librosa.load(io.BytesIO(raw), sr=sr, mono=True)
+    # Demucs expects stereo; duplicate if mono
+    y = librosa.to_mono(y) if y.ndim > 1 else y
+    y = (y, y)  # L,R
+    y = librosa.util.stack(y, axis=0)
+    path = os.path.join(tmpdir, "input.wav")
+    sf.write(path, y.T, sr, subtype="PCM_16")
+    return path, sr
 
-def set_cached_result(audio_hash, metadata):
-    try:
-        supabase_client.table('mashup_cache').insert({
-            'audio_hash': audio_hash,
-            'metadata': json.dumps(metadata)
-        }).execute()
-    except Exception as e:
-        print(f"Failed to cache result for hash {audio_hash}: {e}")
+def separate_demucs(in_wav: str, out_dir: str) -> Dict[str, str]:
+    from demucs.pretrained import get_model
+    from demucs.apply import apply_model
+    import torchaudio
 
-# --- Audio Analysis ---
-def analyze_audio(file_path):
-    y, sr = librosa.load(file_path, sr=None)
-    bpm, _ = librosa.beat.beat_track(y=y, sr=sr)
-    chroma = librosa.feature.chroma_stft(y=y, sr=sr)
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    model = get_model("htdemucs").to(device)
+    wav, sr = torchaudio.load(in_wav)             # [channels, samples]
+    wav = wav.to(device)
 
-    # LUFS normalization would require a dedicated library like 'pyloudnorm'
-    # For now, we'll use RMS energy as a proxy for loudness.
-    rms_energy = librosa.feature.rms(y=y)[0]
+    with torch.no_grad():
+        stems = apply_model(model, wav[None], split=True, overlap=0.25)[0]  # [stems, ch, T]
 
-    return {
-        "bpm": round(float(bpm), 2),
-        "key": librosa.key.key_name(chroma)[0],
-        "duration_seconds": round(librosa.get_duration(y=y, sr=sr), 2),
-        "chroma_profile": np.mean(chroma, axis=1).tolist(),
-        "harmonic_complexity": float(np.std(chroma)),
-        "energy": float(np.mean(rms_energy)),
-        "spectral_brightness": float(np.mean(librosa.feature.spectral_centroid(y=y, sr=sr)))
+    names = ["drums", "bass", "other", "vocals"]
+    paths = {}
+    os.makedirs(out_dir, exist_ok=True)
+    for i, name in enumerate(names):
+        y = stems[i].cpu().numpy().T  # [T, ch]
+        out = os.path.join(out_dir, f"{name}.wav")
+        sf.write(out, y, sr, subtype="PCM_16")
+        paths[name] = out
+    return paths
+
+def separate_spleeter(in_wav: str, out_dir: str) -> Dict[str, str]:
+    # Keep as a real fallback—requires spleeter CLI available in your environment
+    # Example: spleeter separate -p spleeter:4stems -o out input.wav
+    import subprocess, json as _json
+    os.makedirs(out_dir, exist_ok=True)
+    cmd = ["spleeter", "separate", "-p", "spleeter:4stems", "-o", out_dir, in_wav]
+    res = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    if res.returncode != 0:
+        raise RuntimeError(f"Spleeter failed: {res.stderr[:500]}")
+    # Spleeter creates directory input with stems
+    base = os.path.splitext(os.path.basename(in_wav))[0]
+    cand = os.path.join(out_dir, base)
+    # Standardize names
+    mapping = {
+        "vocals.wav": "vocals.wav", "drums.wav": "drums.wav",
+        "bass.wav": "bass.wav", "other.wav": "other.wav"
     }
+    paths = {}
+    for k,v in mapping.items():
+        src = os.path.join(cand, k)
+        dst = os.path.join(out_dir, v)
+        shutil.move(src, dst)
+        paths[v.split('.')[0]] = dst
+    shutil.rmtree(cand, ignore_errors=True)
+    return paths
 
-# --- Main Route ---
-@app.route('/', methods=['POST'])
-def process_audio_route():
-    data = request.get_json()
-    audio_url = data.get('audio_url')
-    if not audio_url:
-        return jsonify({"error": "audio_url is required"}), 400
+def handler(body_bytes: bytes) -> str:
+    """Expect a multipart handler in your edge wrapper to pass us the raw file bytes under 'file'."""
+    start = time.time()
+    raw = body_bytes
+    if not raw:
+        raise ValueError("no file provided")
 
-    with tempfile.TemporaryDirectory() as temp_dir:
+    file_hash = sha1_bytes(raw)
+    cache_root = os.getenv("SEPARATION_CACHE", "/tmp/separation_cache")
+    os.makedirs(cache_root, exist_ok=True)
+    out_dir = os.path.join(cache_root, file_hash)
+
+    if all(os.path.exists(os.path.join(out_dir, f"{n}.wav")) for n in ["vocals","drums","bass","other"]):
+        elapsed = int((time.time() - start) * 1000)
+        return json.dumps({"ok": True, "hash": file_hash, "cached": True, "stems_dir": out_dir, "latency_ms": elapsed})
+
+    with tempfile.TemporaryDirectory() as td:
+        in_wav, sr = write_wav(td, raw)
         try:
-            # Download, hash, and save audio simultaneously
-            response = requests.get(audio_url, stream=True)
-            response.raise_for_status()
-            hasher = hashlib.sha256()
-            temp_audio_path = os.path.join(temp_dir, "original.audio")
-            with open(temp_audio_path, 'wb') as f:
-                for chunk in response.iter_content(chunk_size=8192):
-                    f.write(chunk)
-                    hasher.update(chunk)
-            audio_hash = hasher.hexdigest()
-
-            # Check cache
-            cached_metadata = get_cached_result(audio_hash)
-            if cached_metadata:
-                return jsonify({"status": "success", "cached": True, "data": cached_metadata})
-
-            # 1. Analyze Audio
-            analysis_metadata = analyze_audio(temp_audio_path)
-
-            # 2. Separate Stems
-            output_path = os.path.join(temp_dir, "output")
-            separator.separate_to_file(temp_audio_path, output_path)
-
-            # 3. Upload Stems
-            stem_urls = {}
-            original_filename = os.path.splitext(os.path.basename(temp_audio_path))[0]
-            stem_dir = os.path.join(output_path, original_filename)
-            for stem_file in ['vocals.wav', 'drums.wav', 'bass.wav', 'other.wav']:
-                stem_name = stem_file.split('.')[0]
-                local_path = os.path.join(stem_dir, stem_file)
-                if os.path.exists(local_path):
-                    storage_path = f"{audio_hash}/{stem_file}"
-                    with open(local_path, 'rb') as f:
-                        supabase_client.storage.from_('mashups').upload(storage_path, f, {'contentType': 'audio/wav', 'upsert': 'true'})
-                    stem_urls[stem_name] = storage_path
-
-            # 4. Compile Metadata
-            full_metadata = {
-                "audio_hash": audio_hash,
-                "analysis": analysis_metadata,
-                "stems": stem_urls,
-                "processed_at": datetime.utcnow().isoformat()
-            }
-
-            # 5. Cache Result
-            set_cached_result(audio_hash, full_metadata)
-
-            return jsonify({"status": "success", "cached": False, "data": full_metadata})
-
+            if USE_DEMUCS:
+                stems = separate_demucs(in_wav, out_dir)
+            else:
+                stems = separate_spleeter(in_wav, out_dir)
         except Exception as e:
-            return jsonify({"error": "Processing failed", "details": str(e)}), 500
+            if USE_DEMUCS:
+                # hard fail, no silent fallback—upstream can flip USE_DEMUCS=false explicitly
+                raise
+            raise
 
-if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 8080)))
+    elapsed = int((time.time() - start) * 1000)
+    return json.dumps({"ok": True, "hash": file_hash, "cached": False, "stems_dir": out_dir, "latency_ms": elapsed})

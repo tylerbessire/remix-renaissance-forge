@@ -1,17 +1,5 @@
-# Core web server
-Flask
-
-# Supabase client
-supabase
-
-# For making HTTP requests
-requests
-
-# Audio processing
-librosa
-numpy
-soundfile
-spleeter==2.3.0 # Pinning version for stability
-
-# For handling temporary files and directories
-tempfile
+torch==2.3.1+cu121 --extra-index-url https://download.pytorch.org/whl/cu121
+demucs==4.0.1
+librosa==0.10.2.post1
+soundfile==0.12.1
+spleeter

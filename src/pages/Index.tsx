@@ -33,11 +33,9 @@ const Index = () => {
   
   const [selectedSongs, setSelectedSongs] = useState<Song[]>([]);
   
-  // File registry to preserve File objects during drag & drop for uploaded files
   const [fileRegistry, setFileRegistry] = useState<Map<string, File>>(new Map());
 
   const updateColumnSongs = (columnId: string, songs: Song[]) => {
-    // Update file registry with new songs that have a File object
     setFileRegistry(prev => {
       const newRegistry = new Map(prev);
       songs.forEach(song => {
@@ -77,7 +75,6 @@ const Index = () => {
     toast.success("Mashup zone cleared");
   };
 
-  // Handle drop in mashup zone
   const handleMashupDrop = (e: React.DragEvent) => {
     e.preventDefault();
     const songData = e.dataTransfer.getData('application/json');
@@ -130,18 +127,18 @@ const Index = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background relative overflow-x-hidden">
+    <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="bg-background/80 backdrop-blur-lg sticky top-0 z-50 border-b">
-        <div className="container mx-auto px-6 py-4">
+      <header className="bg-background/80 backdrop-blur-sm sticky top-0 z-50 border-b">
+        <div className="container mx-auto px-6 py-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <h1 className="text-2xl font-bold text-primary text-glow">
+              <h1 className="text-2xl font-bold text-primary">
                 Syncrasis
               </h1>
               <div className="hidden md:flex items-center gap-2 px-3 py-1 rounded-full bg-secondary">
-                <Zap className="h-4 w-4 text-primary" />
-                <span className="text-xs font-medium text-primary-foreground">AI Music Remix Studio</span>
+                <Zap className="h-4 w-4 text-accent" />
+                <span className="text-xs font-medium">AI Music Remix Studio</span>
               </div>
             </div>
             
@@ -158,7 +155,7 @@ const Index = () => {
       </header>
 
       {/* Main Content */}
-      <main className="container mx-auto px-6 py-8 relative z-10">
+      <main className="container mx-auto px-6 py-8">
         <div className="mb-8">
           <YouTubeSearch onSongSelected={handleYouTubeSongSelected} />
         </div>
@@ -172,7 +169,6 @@ const Index = () => {
                 songs={column.songs}
                 onSongsChange={(songs) => updateColumnSongs(column.id, songs)}
                 onDragStart={() => {}}
-                className="bg-glass"
               />
             ))}
           </div>
@@ -188,7 +184,6 @@ const Index = () => {
                 selectedSongs={selectedSongs}
                 onRemoveSong={removeFromMashup}
                 onClearAll={clearMashup}
-                onRaveModeChange={() => {}} // This is now a no-op
               />
             </div>
           </div>
@@ -196,8 +191,8 @@ const Index = () => {
 
         {/* Instructions */}
         <div className="mt-16 text-center max-w-4xl mx-auto">
-          <div className="bg-glass rounded-xl p-8">
-            <h3 className="text-2xl font-bold text-primary mb-4 text-glow">
+          <div className="bg-card rounded-xl p-8 border">
+            <h3 className="text-2xl font-bold text-primary mb-4">
               How It Works
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">

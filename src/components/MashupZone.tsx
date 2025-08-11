@@ -11,7 +11,6 @@ import { toast } from "sonner";
 import { TrackAnalysisDisplay } from "./TrackAnalysisDisplay";
 import { MashupTimeline, type MashupSection } from "./MashupTimeline";
 
-// Updated Song interface
 interface Song {
   id: string;
   name: string;
@@ -20,7 +19,6 @@ interface Song {
   storage_path?: string;
 }
 
-// Updated MashupResult to include timeline
 interface MashupResult {
   title: string;
   audioUrl: string;
@@ -73,19 +71,19 @@ export const MashupZone = ({
   };
 
   return (
-    <Card className={cn("bg-glass p-6 space-y-6", className)}>
+    <Card className={cn("bg-card border p-6 space-y-6", className)}>
       <div className="text-center">
-        <h2 className="text-2xl font-bold text-primary text-glow">Mashup Zone</h2>
+        <h2 className="text-2xl font-bold text-primary">Mashup Zone</h2>
         <p className="text-muted-foreground text-sm">AI-powered music mashup generation</p>
       </div>
 
-      <div className="min-h-64 border-2 border-dashed border-muted rounded-xl p-4 flex flex-col justify-center items-center text-center space-y-4">
+      <div className="min-h-64 border-2 border-dashed rounded-xl p-4 flex flex-col justify-center items-center text-center space-y-4">
         {selectedSongs.length === 0 ? (
           <>
             <div className="w-16 h-16 rounded-full bg-primary/20 border-2 border-primary flex items-center justify-center">
               <Sparkles className="w-8 h-8 text-primary" />
             </div>
-            <p className="font-medium text-foreground">Drag 2-3 tracks here</p>
+            <p className="font-medium">Drag 2-3 tracks here</p>
           </>
         ) : (
           <div className="w-full space-y-3">
@@ -93,16 +91,16 @@ export const MashupZone = ({
               const analysis = getAnalysis(song.id);
               return (
                 <div key={song.id} className="space-y-2">
-                  <div className="flex items-center justify-between p-2 bg-secondary rounded-md">
+                  <div className="flex items-center justify-between p-2 bg-background rounded-md border">
                     <div className="flex-1 text-left">
-                      <p className="font-medium text-sm text-foreground">{song.name}</p>
+                      <p className="font-medium text-sm">{song.name}</p>
                       <p className="text-xs text-muted-foreground">{song.artist}</p>
                     </div>
                     <div className="flex items-center">
                       <Button variant="ghost" size="sm" onClick={() => analyzeSong(song)} disabled={isAnalyzing || !song.file}>
                         <Brain className="h-4 w-4" />
                       </Button>
-                      <Button variant="ghost" size="sm" onClick={() => onRemoveSong(song.id)} className="text-muted-foreground hover:text-destructive">
+                      <Button variant="ghost" size="sm" onClick={() => onRemoveSong(song.id)} className="hover:text-destructive">
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>
@@ -128,7 +126,7 @@ export const MashupZone = ({
         )}
 
         {mashupResult && !isProcessing && (
-          <div className="space-y-3 p-4 bg-secondary rounded-lg">
+          <div className="space-y-3 p-4 bg-background rounded-lg border">
             <div className="text-center">
               <h3 className="text-lg font-bold text-primary">"{mashupResult.title}"</h3>
               <p className="text-sm text-muted-foreground italic">{mashupResult.concept}</p>
