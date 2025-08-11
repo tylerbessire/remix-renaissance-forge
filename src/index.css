@@ -1,6 +1,6 @@
+@tailwind base;
 @tailwind components;
 @tailwind utilities;
-
 /* Syncrasis Design System - New Rainbow Rave Aesthetic */
 
 @keyframes rainbow-bg-animation {
@@ -58,12 +58,6 @@
       hsl(0, 80%, 60%)
     );
 
-    /* Apply the rainbow animation to the main background class */
-    .bg-gradient-vibrant {
-      background: var(--gradient-rainbow-bg);
-      background-size: 400% 400%;
-      animation: rainbow-bg-animation 15s ease infinite;
-    }
 
     /* Keep some old tokens for compatibility if they are used elsewhere */
     --sunset-glow: 35 100% 70%;
@@ -92,5 +86,13 @@
     --border: 220 15% 30%;
     --input: 220 15% 18%;
     --ring: 190 100% 70%;
+  }
+}
+
+@layer utilities {
+  .bg-gradient-vibrant {
+    background: var(--gradient-rainbow-bg);
+    background-size: 400% 400%;
+    animation: rainbow-bg-animation 15s ease infinite;
   }
 }
