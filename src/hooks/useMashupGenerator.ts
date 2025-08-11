@@ -62,6 +62,8 @@ export const useMashupGenerator = () => {
       body: {
         songId: song.id,
         fileName: safeFilename,
+        fileSize: song.file.size,
+        contentType: song.file.type || undefined,
       },
     });
 
@@ -96,6 +98,16 @@ export const useMashupGenerator = () => {
     setIsProcessing(true);
     setProgress(0);
     setProcessingStep("Uploading your tracks...");
+
+    // Require authentication before proceeding
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      toast.error("Please sign in to upload and generate mashups.");
+      setIsProcessing(false);
+      setProgress(0);
+      setProcessingStep("");
+      return null;
+    }
 
     try {
       const uploadedSongs = await Promise.all(songs.map(async (song, index) => {

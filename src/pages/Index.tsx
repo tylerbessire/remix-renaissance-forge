@@ -4,6 +4,7 @@ import { MashupZone } from "@/components/MashupZone";
 import { Button } from "@/components/ui/button";
 import { Settings, Zap } from "lucide-react";
 import { toast } from "sonner";
+import { Link } from "react-router-dom";
 
 interface Song {
   id: string;
@@ -191,11 +192,14 @@ const Index = () => {
               </div>
             </div>
             
-            <div className="flex items-center gap-4">
-              <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-sunset-glow hover:bg-sunset-glow/10 rounded-xl transition-all duration-300">
-                <Settings className="h-5 w-5" />
-              </Button>
-            </div>
+              <div className="flex items-center gap-4">
+                <Link to="/auth">
+                  <Button size="sm" variant="secondary">Account</Button>
+                </Link>
+                <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-sunset-glow hover:bg-sunset-glow/10 rounded-xl transition-all duration-300">
+                  <Settings className="h-5 w-5" />
+                </Button>
+              </div>
           </div>
         </div>
       </header>

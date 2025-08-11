@@ -35,6 +35,33 @@ export type Database = {
         }
         Relationships: []
       }
+      mashup_jobs: {
+        Row: {
+          created_at: string
+          error_message: string | null
+          id: string
+          job_data: Json | null
+          result_url: string | null
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          job_data?: Json | null
+          result_url?: string | null
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          job_data?: Json | null
+          result_url?: string | null
+          status?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

@@ -13,14 +13,37 @@ serve(async (req) => {
   }
 
   try {
-    const { songId, fileName } = await req.json();
+    const { songId, fileName, fileSize, contentType } = await req.json();
     if (!songId || !fileName) {
       return new Response(JSON.stringify({ error: 'songId and fileName are required' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
-    // Very simple filename sanitization (also done client-side)
-    const safeName = String(fileName).replace(/\s+/g, '_').replace(/[^a-zA-Z0-9-_.]/g, '');
-    const path = `uploads/${songId}/${safeName}`;
+    // Validate songId to prevent path traversal and weird characters
+    const idStr = String(songId);
+    const idValid = /^[a-zA-Z0-9_-]{1,64}$/.test(idStr);
+    if (!idValid) {
+      return new Response(JSON.stringify({ error: 'Invalid songId format' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
+
+    // Enhanced filename sanitization and validation
+    const rawName = String(fileName);
+    const safeName = rawName.replace(/\s+/g, '_').replace(/[^a-zA-Z0-9-_.]/g, '');
+    const dotIdx = safeName.lastIndexOf('.');
+    const ext = dotIdx > -1 ? safeName.slice(dotIdx + 1).toLowerCase() : '';
+    const allowed = new Set(['mp3','wav','m4a','flac','ogg','aac']);
+    if (!ext || !allowed.has(ext)) {
+      return new Response(JSON.stringify({ error: 'Unsupported file type' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
+
+    // Optional size/type checks (when provided by client)
+    if (typeof fileSize === 'number' && fileSize > 50 * 1024 * 1024) { // 50MB
+      return new Response(JSON.stringify({ error: 'File too large (max 50MB)' }), { status: 413, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
+    if (typeof contentType === 'string' && !contentType.startsWith('audio/')) {
+      return new Response(JSON.stringify({ error: 'Invalid content type' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
+
+    const path = `uploads/${idStr}/${safeName}`;
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
     const serviceRole = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
@@ -40,6 +63,6 @@ serve(async (req) => {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (e) {
-    return new Response(JSON.stringify({ error: 'Failed to create signed upload', details: e.message } ), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
-  }
+    return new Response(JSON.stringify({ error: 'Failed to create signed upload', details: (e as Error).message } ), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+  } 
 });
