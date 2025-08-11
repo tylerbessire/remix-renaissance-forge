@@ -1,8 +1,8 @@
-import { useState } from "react";
+import { useState, useRef, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
-// --- Design: Missing Interface Definitions ---
+// --- Interface Definitions ---
 interface Song {
   id: string;
   name: string;
@@ -11,7 +11,7 @@ interface Song {
 }
 
 interface UploadedSong {
-  storage_path: string; // Using path instead of URL for security
+  storage_path: string;
   song_id: string;
   name: string;
   artist: string;
@@ -20,24 +20,21 @@ interface UploadedSong {
 interface MashupResult {
   title: string;
   concept: string;
-  audioUrl: string; // This will now be a signed URL
+  audioUrl: string;
 }
 
-interface MashupResponse {
+// New interfaces for async flow
+interface MashupJobResponse {
   success: boolean;
-  // Newer response shape
-  result?: {
-    title?: string;
-    concept?: string;
-    audioUrl?: string;        // direct URL
-    storage_path?: string;    // storage path
-    mashup_url?: string;      // alias for storage path
-  };
-  // Legacy/alternate fields
-  mashup_url?: string;
+  jobId: string;
+}
+
+interface MashupStatusData {
+  status: 'processing' | 'complete' | 'failed';
+  result_url?: string;
   title?: string;
   concept?: string;
-  details?: string;
+  error_message?: string;
 }
 
 const sanitizeFilename = (filename: string): string => {
@@ -48,65 +45,104 @@ export const useMashupGenerator = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [progress, setProgress] = useState(0);
   const [processingStep, setProcessingStep] = useState("");
+  const [mashupResult, setMashupResult] = useState<MashupResult | null>(null);
+  const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  const stopPolling = useCallback(() => {
+    if (pollingIntervalRef.current) {
+      clearInterval(pollingIntervalRef.current);
+      pollingIntervalRef.current = null;
+    }
+  }, []);
 
   const uploadSong = async (song: Song): Promise<UploadedSong> => {
     if (!song.file || !(song.file instanceof File)) {
       throw new Error(`Invalid file for song "${song.name}".`);
     }
-
     const safeFilename = sanitizeFilename(song.file.name);
     const filePath = `uploads/${song.id}/${safeFilename}`;
-
-    // Request a signed upload URL from our Edge Function (uses service role)
     const { data: signedUpload, error: signedErr } = await supabase.functions.invoke<{ path: string; signedUrl: string; token: string }>('create-signed-upload', {
-      body: {
-        songId: song.id,
-        fileName: safeFilename,
-        fileSize: song.file.size,
-        contentType: song.file.type || undefined,
-      },
+      body: { songId: song.id, fileName: safeFilename, fileSize: song.file.size, contentType: song.file.type || undefined },
     });
-
     if (signedErr || !signedUpload) {
       throw new Error(`Failed to prepare secure upload for ${song.name}: ${signedErr?.message || 'Unknown error'}.`);
     }
-
-    // Perform the upload using the signed token
-    const { error: uploadError } = await supabase.storage
-      .from('mashups')
-      .uploadToSignedUrl(signedUpload.path, signedUpload.token, song.file);
-
-
+    const { error: uploadError } = await supabase.storage.from('mashups').uploadToSignedUrl(signedUpload.path, signedUpload.token, song.file);
     if (uploadError) {
       throw new Error(`Failed to upload ${song.name}: ${uploadError.message}.`);
     }
-
-    return {
-      storage_path: filePath,
-      song_id: song.id,
-      name: song.name,
-      artist: song.artist,
-    };
+    return { storage_path: filePath, song_id: song.id, name: song.name, artist: song.artist };
   };
 
-  const generateMashup = async (songs: Song[]): Promise<MashupResult | null> => {
+  const pollMashupStatus = useCallback(async (jobId: string) => {
+    const { data, error } = await supabase.functions.invoke<MashupStatusData>('get-mashup-status', {
+      body: { jobId },
+    });
+
+    if (error) {
+      toast.error(`Error checking status: ${error.message}`);
+      stopPolling();
+      setIsProcessing(false);
+      return;
+    }
+
+    if (!data) return;
+
+    setProcessingStep(`AI is working... (status: ${data.status})`);
+
+    if (data.status === 'complete') {
+      stopPolling();
+      setProcessingStep("Mashup complete!");
+      setProgress(100);
+
+      if (!data.result_url) {
+        toast.error("Mashup finished, but no audio URL was found.");
+        setIsProcessing(false);
+        return;
+      }
+
+      const { data: signedUrlData, error: signedUrlError } = await supabase.storage
+        .from('mashups')
+        .createSignedUrl(data.result_url, 3600);
+
+      if (signedUrlError || !signedUrlData?.signedUrl) {
+          toast.error(`Could not create secure link for the mashup: ${signedUrlError?.message || 'Unknown error'}`);
+          setIsProcessing(false);
+          return;
+      }
+
+      const result: MashupResult = {
+        title: data.title ?? 'Your AI Mashup',
+        concept: data.concept ?? 'Generated by AI',
+        audioUrl: signedUrlData.signedUrl,
+      };
+      setMashupResult(result);
+      toast.success(`Created "${result.title}"!`);
+      setIsProcessing(false);
+
+    } else if (data.status === 'failed') {
+      stopPolling();
+      toast.error(`Mashup failed: ${data.error_message || 'Unknown error'}`);
+      setIsProcessing(false);
+    }
+  }, [stopPolling]);
+
+  const generateMashup = async (songs: Song[]) => {
     if (songs.length < 2 || songs.length > 3) {
       toast.error("Please provide 2-3 songs for mashup");
-      return null;
+      return;
     }
 
     setIsProcessing(true);
+    setMashupResult(null);
     setProgress(0);
     setProcessingStep("Uploading your tracks...");
 
-    // Require authentication before proceeding
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) {
       toast.error("Please sign in to upload and generate mashups.");
       setIsProcessing(false);
-      setProgress(0);
-      setProcessingStep("");
-      return null;
+      return;
     }
 
     try {
@@ -115,64 +151,34 @@ export const useMashupGenerator = () => {
         return await uploadSong(song);
       }));
 
-      setProcessingStep("AI is generating your mashup...");
-      setProgress(75);
+      setProcessingStep("Initializing AI mashup...");
+      setProgress(60);
 
-      // The 'data' object will be typed as MashupResponse
-      const { data, error } = await supabase.functions.invoke<MashupResponse>('generate-mashup', {
-        body: { 
-          songs: uploadedSongs, // Sending storage_path instead of public URL
-        }
+      const { data, error } = await supabase.functions.invoke<MashupJobResponse>('generate-mashup', {
+        body: { songs: uploadedSongs }
       });
 
-      if (error) {
-        throw new Error(`Mashup generation failed: ${error.message}`);
+      if (error || !data?.success || !data.jobId) {
+        throw new Error(`Failed to start mashup job: ${error?.message || 'No job ID returned'}`);
       }
 
-      if (!data || !data.success) {
-        throw new Error(data?.details || "The mashup could not be created by the AI.");
-      }
+      setProcessingStep("Mashup job started! Waiting for AI...");
+      setProgress(75);
 
-      // Determine file location from function response and create signed URL only when needed
-      const title = data.result?.title ?? data.title ?? 'Your Mashup';
-      const concept = data.result?.concept ?? data.concept ?? '';
-      const storagePath = data.result?.storage_path ?? data.result?.mashup_url ?? data.mashup_url;
-      const directUrl = data.result?.audioUrl;
+      stopPolling(); // Ensure no previous polling is running
 
-      let finalUrl: string | undefined;
-      if (directUrl && /^https?:\/\//.test(directUrl)) {
-        finalUrl = directUrl;
-      } else if (storagePath) {
-        const { data: signedUrlData, error: signedUrlError } = await supabase.storage
-          .from('mashups')
-          .createSignedUrl(storagePath, 3600); // 3600 seconds = 1 hour
-
-        if (signedUrlError || !signedUrlData?.signedUrl) {
-          throw new Error(`Could not create secure link for the mashup: ${signedUrlError?.message || 'Unknown error'}`);
-        }
-        finalUrl = signedUrlData.signedUrl;
-      } else {
-        throw new Error('Mashup function did not return a file location.');
-      }
-
-      setProcessingStep("Mashup complete!");
-      setProgress(100);
-      toast.success(`Created "${title}"!`);
-
-      return {
-        title,
-        concept,
-        audioUrl: finalUrl,
-      };
+      // Start polling
+      pollingIntervalRef.current = setInterval(() => pollMashupStatus(data.jobId), 5000);
+      // And call it once immediately
+      pollMashupStatus(data.jobId);
 
     } catch (error) {
       console.error('Mashup generation error:', error);
       toast.error(error instanceof Error ? error.message : "An unknown error occurred.");
-      return null;
-    } finally {
       setIsProcessing(false);
       setProgress(0);
       setProcessingStep("");
+      stopPolling();
     }
   };
 
@@ -181,5 +187,6 @@ export const useMashupGenerator = () => {
     isProcessing,
     progress,
     processingStep,
+    mashupResult,
   };
 };
