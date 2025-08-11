@@ -85,4 +85,8 @@
   .text-glow {
     text-shadow: 0 0 8px hsl(var(--primary) / 0.5);
   }
+
+  .text-input-custom {
+    @apply text-[hsl(28,100%,50%)] font-semibold;
+  }
 }

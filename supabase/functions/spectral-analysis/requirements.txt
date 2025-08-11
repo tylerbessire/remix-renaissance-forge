@@ -1,4 +1,5 @@
 Flask
 supabase
-yt-dlp
 Flask-Cors
+librosa
+numpy

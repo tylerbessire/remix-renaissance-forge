@@ -2,27 +2,19 @@ import os
 import json
 import subprocess
 from flask import Flask, request, jsonify
+from flask_cors import CORS
 
 app = Flask(__name__)
+CORS(app) # Enable CORS for all routes
 
-# Helper function to add CORS headers
-def add_cors_headers(response):
-    response.headers['Access-Control-Allow-Origin'] = '*'
-    response.headers['Access-Control-Allow-Headers'] = '*'
-    response.headers['Access-Control-Allow-Methods'] = 'POST, OPTIONS'
-    return response
-
-@app.route('/', methods=['POST', 'OPTIONS'])
+@app.route('/', methods=['POST'])
 def handle_request():
-    if request.method == 'OPTIONS':
-        return add_cors_headers(jsonify({}))
-
     try:
         data = request.get_json()
         query = data.get('query')
 
         if not query:
-            return add_cors_headers(jsonify({"error": "A 'query' parameter is required."})), 400
+            return jsonify({"error": "A 'query' parameter is required."}), 400
 
         command = [
             'yt-dlp',
@@ -43,12 +35,12 @@ def handle_request():
                 'thumbnail': video_info.get('thumbnail'),
             })
 
-        return add_cors_headers(jsonify({"success": True, "results": results}))
+        return jsonify({"success": True, "results": results})
 
     except subprocess.CalledProcessError as e:
-        return add_cors_headers(jsonify({"error": "Failed to execute yt-dlp", "details": e.stderr})), 500
+        return jsonify({"error": "Failed to execute yt-dlp", "details": e.stderr.decode()}), 500
     except Exception as e:
-        return add_cors_headers(jsonify({"error": "An unexpected error occurred", "details": str(e)})), 500
+        return jsonify({"error": "An unexpected error occurred", "details": str(e)}), 500
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 8080)))
