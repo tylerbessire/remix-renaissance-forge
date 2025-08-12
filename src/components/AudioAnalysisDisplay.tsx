@@ -1,7 +1,17 @@
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import type { AudioFeatures } from "@/utils/audioAnalysis";
+// Define a local lightweight type for features to avoid coupling to utils
+// Optional fields match what the component renders
+export type AudioFeatures = {
+  tempo?: number;
+  energy?: number; // 0..1
+  danceability?: number; // 0..1
+  valence?: number; // 0..1
+  speechiness?: number; // 0..1
+  acousticness?: number; // 0..1
+  genre?: string;
+};
 import { Music, Zap, Heart, Volume2, Mic, Guitar } from "lucide-react";
 
 interface AudioAnalysisDisplayProps {
