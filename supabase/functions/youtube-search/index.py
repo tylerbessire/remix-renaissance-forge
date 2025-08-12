@@ -38,7 +38,7 @@ def handle_request():
         return jsonify({"success": True, "results": results})
 
     except subprocess.CalledProcessError as e:
-        return jsonify({"error": "Failed to execute yt-dlp", "details": e.stderr.decode()}), 500
+        return jsonify({"error": "Failed to execute yt-dlp", "details": str(getattr(e, "stderr", e))}), 500
     except Exception as e:
         return jsonify({"error": "An unexpected error occurred", "details": str(e)}), 500
 
