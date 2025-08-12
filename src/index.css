@@ -2,163 +2,89 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Syncrasis Design System - Vibrant Sunset Aesthetic
-All colors MUST be HSL. Bright, vibrant, modern vibes.
-*/
+/* Syncrasis Design System - "Light and Waves" Theme */
+
+@keyframes led-flow-h {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100vw); }
+}
+@keyframes led-flow-v {
+  0% { transform: translateY(-100%); }
+  100% { transform: translateY(100vh); }
+}
+@keyframes glow-rotate {
+  0% { transform: rotate(0deg); opacity: 0.5; }
+  50% { transform: rotate(180deg); opacity: 0.8; }
+  100% { transform: rotate(360deg); opacity: 0.5; }
+}
+@keyframes color-shift {
+  0% { border-color: hsl(var(--electric-green)); box-shadow: 0 0 20px hsl(var(--electric-green) / 0.7); }
+  25% { border-color: hsl(var(--electric-blue)); box-shadow: 0 0 20px hsl(var(--electric-blue) / 0.7); }
+  50% { border-color: hsl(var(--electric-purple)); box-shadow: 0 0 20px hsl(var(--electric-purple) / 0.7); }
+  75% { border-color: hsl(var(--electric-red)); box-shadow: 0 0 20px hsl(var(--electric-red) / 0.7); }
+  100% { border-color: hsl(var(--electric-green)); box-shadow: 0 0 20px hsl(var(--electric-green) / 0.7); }
+}
 
 @layer base {
   :root {
-    /* Core vibrant palette */
-    --background: 220 35% 15%;
-    --foreground: 30 100% 98%;
+    /* Core palette - Deep space colors */
+    --background: 220 50% 5%;
+    --foreground: 220 20% 95%;
 
-    /* Card system - brighter, more vibrant */
-    --card: 220 30% 20%;
-    --card-foreground: 30 100% 98%;
+    --card: 220 40% 10%;
+    --card-foreground: 220 20% 95%;
 
-    --popover: 220 35% 18%;
-    --popover-foreground: 30 100% 98%;
+    --popover: 220 40% 8%;
+    --popover-foreground: 220 20% 95%;
 
-    /* Primary - Vibrant Orange-Gold */
-    --primary: 35 100% 70%;
-    --primary-foreground: 220 25% 8%;
+    /* Primary actions will have a vibrant, glowing feel */
+    --primary: 190 100% 60%; /* Bright Cyan */
+    --primary-foreground: 220 50% 5%;
 
-    /* Secondary - Bright Purple-Pink */
-    --secondary: 320 85% 75%;
-    --secondary-foreground: 220 25% 8%;
+    --secondary: 220 30% 25%;
+    --secondary-foreground: 220 15% 90%;
 
-    /* Muted - Rich Cobalt */
-    --muted: 220 40% 25%;
-    --muted-foreground: 220 15% 80%;
+    --muted: 220 30% 20%;
+    --muted-foreground: 220 20% 70%;
 
-    /* Accent - Electric Cyan */
-    --accent: 190 100% 70%;
-    --accent-foreground: 220 25% 8%;
+    --accent: 280 100% 70%; /* Electric Purple */
+    --accent-foreground: 220 20% 95%;
 
-    --destructive: 0 84% 60%;
-    --destructive-foreground: 30 100% 95%;
+    --destructive: 0 90% 65%;
+    --destructive-foreground: 0 0% 100%;
 
-    --border: 220 15% 20%;
-    --input: 220 15% 18%;
-    --ring: 25 100% 65%;
+    --border: 220 30% 15%;
+    --input: 220 30% 12%;
+    --ring: 190 100% 65%;
 
     --radius: 0.75rem;
 
-    /* Custom Syncrasis vibrant tokens */
+    /* "Light and Waves" Theme Tokens */
     --sunset-glow: 35 100% 70%;
-    --sunset-deep: 25 95% 65%;
     --twilight-purple: 280 80% 65%;
-    --twilight-pink: 320 85% 75%;
-    --cobalt-deep: 220 50% 20%;
-    --cobalt-mid: 220 40% 30%;
-    --cobalt-light: 220 30% 40%;
     --cyan-bright: 190 100% 70%;
-    --teal-vibrant: 170 85% 65%;
+    --cobalt-deep: 220 50% 10%;
+    --cobalt-mid: 220 40% 15%;
+    --cobalt-light: 220 30% 25%;
     
-    /* Electric LED colors */
-    --electric-green: 120 100% 50%;
-    --electric-blue: 200 100% 60%;
-    --electric-purple: 280 100% 70%;
-    --electric-red: 0 100% 60%;
-    --electric-yellow: 60 100% 60%;
-    
-    /* Vibrant gradients */
-    --gradient-sunset: linear-gradient(135deg, hsl(var(--sunset-glow)), hsl(var(--twilight-pink)));
-    --gradient-twilight: linear-gradient(180deg, hsl(var(--twilight-purple)), hsl(var(--cobalt-deep)));
-    --gradient-glow: linear-gradient(90deg, hsl(var(--sunset-glow) / 0.9), hsl(var(--accent) / 0.8));
-    --gradient-vibrant: linear-gradient(120deg, hsl(var(--cyan-bright)), hsl(var(--sunset-glow)), hsl(var(--twilight-pink)));
-    --gradient-card: linear-gradient(145deg, hsl(var(--cobalt-mid) / 0.8), hsl(var(--cobalt-deep) / 0.9));
-    
-    /* Vibrant shadows & effects */
-    --shadow-glow: 0 0 50px hsl(var(--sunset-glow) / 0.5);
-    --shadow-purple: 0 0 40px hsl(var(--accent) / 0.6);
-    --shadow-cyan: 0 0 35px hsl(var(--cyan-bright) / 0.5);
-    --shadow-deep: 0 25px 80px hsl(var(--cobalt-deep) / 0.9);
-    --shadow-card: 0 15px 40px hsl(var(--cobalt-deep) / 0.6);
-    
-    /* Glass morphism effects - Apple style */
-    --glass-background: hsla(0, 0%, 0%, 0.4);
-    --glass-background-dark: hsla(0, 0%, 0%, 0.6);
-    --glass-border: hsla(0, 0%, 100%, 0.12);
-    --glass-border-dark: hsla(0, 0%, 255%, 0.08);
-    --glass-shadow: 0 8px 32px hsla(0, 0%, 0%, 0.5);
-    
-    /* Text bubble effects */
-    --text-shadow-bubble: 0 0 8px hsl(var(--background)), 0 0 16px hsl(var(--background)), 0 0 24px hsl(var(--background));
-    
-    /* Animations */
-    --transition-smooth: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-    --transition-glow: all 0.3s ease-out;
-    
-    /* LED Circuit Patterns */
-    --led-trail-1: linear-gradient(90deg, transparent 0%, hsl(var(--electric-green)) 50%, transparent 100%);
-    --led-trail-2: linear-gradient(180deg, transparent 0%, hsl(var(--electric-blue)) 50%, transparent 100%);
-    --led-trail-3: linear-gradient(270deg, transparent 0%, hsl(var(--electric-purple)) 50%, transparent 100%);
-    --led-trail-4: linear-gradient(0deg, transparent 0%, hsl(var(--electric-red)) 50%, transparent 100%);
-    --led-trail-5: linear-gradient(45deg, transparent 0%, hsl(var(--electric-yellow)) 50%, transparent 100%);
-    
-    /* Multi-color laser gradients */
-    --laser-rainbow: linear-gradient(90deg, 
-      hsl(var(--electric-red)), 
-      hsl(var(--electric-yellow)), 
-      hsl(var(--electric-green)), 
-      hsl(var(--electric-blue)), 
-      hsl(var(--electric-purple))
-    );
-    --laser-neon: linear-gradient(45deg, 
-      hsl(var(--electric-green)) 0%, 
-      hsl(var(--electric-blue)) 25%, 
-      hsl(var(--electric-purple)) 50%, 
-      hsl(var(--electric-red)) 75%, 
-      hsl(var(--electric-yellow)) 100%
-    );
+    --electric-green: 120 100% 60%;
+    --electric-blue: 200 100% 65%;
+    --electric-purple: 280 100% 75%;
+    --electric-red: 0 100% 65%;
+    --electric-yellow: 60 100% 65%;
 
-    --sidebar-background: 220 25% 10%;
-    --sidebar-foreground: 30 100% 95%;
-    --sidebar-primary: 25 100% 65%;
-    --sidebar-primary-foreground: 220 25% 8%;
-    --sidebar-accent: 220 20% 15%;
-    --sidebar-accent-foreground: 30 100% 95%;
-    --sidebar-border: 220 15% 20%;
-    --sidebar-ring: 25 100% 65%;
+    /* New Gradients */
+    --gradient-sunset: linear-gradient(135deg, hsl(var(--sunset-glow)), hsl(var(--twilight-purple)));
+    --gradient-card: linear-gradient(145deg, hsl(var(--cobalt-mid) / 0.6), hsl(var(--cobalt-deep) / 0.8));
+
+    /* New Shadows */
+    --shadow-glow: 0 0 40px hsl(var(--cyan-bright) / 0.4);
+    --shadow-purple: 0 0 30px hsl(var(--accent) / 0.5);
+    --shadow-card: 0 10px 30px hsl(var(--background) / 0.5);
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
-
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
-
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
-
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
-
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
-
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
-    --sidebar-background: 240 5.9% 10%;
-    --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 224.3 76.3% 48%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    /* The default theme is already dark */
   }
 }
 
@@ -168,6 +94,7 @@ All colors MUST be HSL. Bright, vibrant, modern vibes.
   }
 
   body {
-    @apply bg-background text-foreground font-montserrat;
+    @apply bg-background text-foreground;
+    font-family: 'Montserrat', sans-serif;
   }
 }

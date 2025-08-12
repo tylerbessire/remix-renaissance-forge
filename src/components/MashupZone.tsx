@@ -2,26 +2,17 @@ import { useState, useEffect, useRef } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { Zap, Trash2, Play, Download, Sparkles, TrendingUp } from "lucide-react";
+import { Zap, Trash2, Play, Download, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useMashupGenerator } from "@/hooks/useMashupGenerator";
-import { CompatibilityScore } from "@/components/CompatibilityScore";
-import { useAudioAnalysis } from "@/hooks/useAudioAnalysis";
 import { ClaudeCollaboration } from "@/components/ClaudeCollaboration";
 import { toast } from "sonner";
-
 
 interface Song {
   id: string;
   name: string;
   artist: string;
   file: File;
-}
-
-interface MashupResult {
-  title: string;
-  audioUrl: string;
-  concept: string;
 }
 
 interface MashupZoneProps {
@@ -39,10 +30,7 @@ export const MashupZone = ({
   onRaveModeChange,
   className 
 }: MashupZoneProps) => {
-  const [result, setResult] = useState<MashupResult | null>(null);
-  const { generateMashup, isProcessing, progress, processingStep } = useMashupGenerator();
-  const { analyzeMashupCompatibility } = useAudioAnalysis();
-  const [compatibility, setCompatibility] = useState<{ score: number; reasons: string[]; suggestions: string[] } | null>(null);
+  const { generateMashup, isProcessing, progress, processingStep, result } = useMashupGenerator();
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   // Cleanup audio when component unmounts or result changes
@@ -60,24 +48,9 @@ export const MashupZone = ({
     onRaveModeChange?.(isProcessing);
   }, [isProcessing, onRaveModeChange]);
 
-  // Analyze compatibility when songs change
-  useEffect(() => {
-    if (selectedSongs.length >= 2) {
-      analyzeMashupCompatibility(selectedSongs).then(setCompatibility);
-    } else {
-      setCompatibility(null);
-    }
-  }, [selectedSongs, analyzeMashupCompatibility]);
-
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
-    const songData = e.dataTransfer.getData('application/json');
-    if (songData) {
-      const song = JSON.parse(songData);
-      if (selectedSongs.length < 3 && !selectedSongs.find(s => s.id === song.id)) {
-        // This would be handled by parent component
-      }
-    }
+    // Drop logic is handled by the parent component
   };
 
   const handleDragOver = (e: React.DragEvent) => {
@@ -86,13 +59,8 @@ export const MashupZone = ({
 
   const startMashup = async () => {
     if (selectedSongs.length < 2) return;
-
-    setResult(null);
-    const mashupResult = await generateMashup(selectedSongs);
-    
-    if (mashupResult) {
-      setResult(mashupResult);
-    }
+    // The hook now manages its own state, so we just trigger it.
+    await generateMashup(selectedSongs);
   };
 
   return (
@@ -102,7 +70,6 @@ export const MashupZone = ({
       className
     )}>
       <div className="text-center space-y-6">
-        {/* Header */}
         <div className="space-y-2">
           <h2 className="text-2xl font-bold bg-gradient-sunset bg-clip-text text-transparent">
             MASHUP ZONE
@@ -112,7 +79,6 @@ export const MashupZone = ({
           </p>
         </div>
 
-        {/* Drop Zone */}
         <div
           onDrop={handleDrop}
           onDragOver={handleDragOver}
@@ -128,18 +94,10 @@ export const MashupZone = ({
               <div className="w-24 h-24 rounded-full bg-gradient-sunset flex items-center justify-center animate-float shadow-purple">
                 <Sparkles className="w-12 h-12 text-white" />
               </div>
-              <div className="text-center">
-                <p className="text-lg font-medium text-foreground mb-2">
-                  Drag 2-3 tracks here
-                </p>
-                <p className="text-sm text-muted-foreground">
-                  AI-powered music mashup generation
-                </p>
-              </div>
+              <p className="text-lg font-medium text-foreground">Drag 2-3 tracks here</p>
             </div>
           ) : (
             <div className="p-6 space-y-4">
-              {/* Selected Songs */}
               <div className="grid gap-3">
                 {selectedSongs.map((song, index) => (
                   <div
@@ -151,19 +109,13 @@ export const MashupZone = ({
                       <p className="font-medium text-foreground">{song.name}</p>
                       <p className="text-sm text-muted-foreground">{song.artist}</p>
                     </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => onRemoveSong(song.id)}
-                      className="text-muted-foreground hover:text-destructive"
-                    >
+                    <Button variant="ghost" size="sm" onClick={() => onRemoveSong(song.id)} className="text-muted-foreground hover:text-destructive">
                       <Trash2 className="h-4 w-4" />
                     </Button>
                   </div>
                 ))}
               </div>
 
-              {/* Processing Status */}
               {isProcessing && (
                 <div className="space-y-3 py-4">
                   <div className="flex items-center justify-center gap-2">
@@ -176,18 +128,7 @@ export const MashupZone = ({
                 </div>
               )}
 
-              {/* Compatibility Analysis */}
-              {compatibility && selectedSongs.length >= 2 && !isProcessing && (
-                <CompatibilityScore 
-                  score={compatibility.score}
-                  reasons={compatibility.reasons}
-                  suggestions={compatibility.suggestions}
-                  className="animate-slide-up"
-                />
-              )}
-
-              {/* Result */}
-              {result && (
+              {result && !isProcessing && (
                 <div className="space-y-4 p-4 bg-cobalt-deep/60 rounded-lg border border-twilight-pink/30 animate-slide-up">
                   <div className="text-center space-y-2">
                     <h3 className="text-xl font-bold text-sunset-glow">
@@ -198,36 +139,22 @@ export const MashupZone = ({
                     </p>
                   </div>
                   <div className="flex gap-2 justify-center">
-                    <Button 
-                      size="sm" 
-                      className="bg-gradient-sunset hover:shadow-glow"
-                      onClick={() => {
-                        if (audioRef.current) {
-                          audioRef.current.pause();
-                        }
-                        audioRef.current = new Audio(result.audioUrl);
-                        audioRef.current.play().catch(error => {
-                          console.error('Error playing audio:', error);
-                          toast.error('Unable to play audio');
-                        });
-                      }}
-                    >
+                    <Button size="sm" className="bg-gradient-sunset hover:shadow-glow" onClick={() => {
+                      if (audioRef.current) audioRef.current.pause();
+                      audioRef.current = new Audio(result.audioUrl);
+                      audioRef.current.play().catch(e => toast.error('Unable to play audio'));
+                    }}>
                       <Play className="h-4 w-4 mr-2" />
                       Play
                     </Button>
-                    <Button 
-                      size="sm" 
-                      variant="outline" 
-                      className="border-twilight-pink text-twilight-pink hover:bg-twilight-pink/10"
-                      onClick={() => {
-                        const link = document.createElement('a');
-                        link.href = result.audioUrl;
-                        link.download = `${result.title}.mp3`;
-                        document.body.appendChild(link);
-                        link.click();
-                        document.body.removeChild(link);
-                      }}
-                    >
+                    <Button size="sm" variant="outline" className="border-twilight-pink text-twilight-pink hover:bg-twilight-pink/10" onClick={() => {
+                      const link = document.createElement('a');
+                      link.href = result.audioUrl;
+                      link.download = `${result.title}.mp3`;
+                      document.body.appendChild(link);
+                      link.click();
+                      document.body.removeChild(link);
+                    }}>
                       <Download className="h-4 w-4 mr-2" />
                       Download
                     </Button>
@@ -238,46 +165,32 @@ export const MashupZone = ({
           )}
         </div>
 
-        {/* Claude Collaboration */}
         {result && (
           <ClaudeCollaboration
             mashupConcept={result.concept}
             analysisData={[]}
             onIterationRequest={async (feedback) => {
               toast.info("Collaborating with Claude on new concept...");
-              // This would integrate with the mashup generator to create iterations
               await generateMashup(selectedSongs);
             }}
           />
         )}
 
-        {/* Action Buttons */}
         <div className="flex gap-4 justify-center">
           {selectedSongs.length >= 2 && !isProcessing && (
-            <Button
-              onClick={startMashup}
-              size="xl"
-              variant="sunset"
-              disabled={isProcessing}
-              className="font-bold animate-sunset-pulse"
-            >
+            <Button onClick={startMashup} size="xl" variant="sunset" disabled={isProcessing} className="font-bold animate-sunset-pulse">
               <Zap className="h-5 w-5 mr-2" />
-              {isProcessing ? "CREATING MASHUP..." : "CREATE MASHUP"}
+              CREATE MASHUP
             </Button>
           )}
           
-          {selectedSongs.length > 0 && (
-            <Button
-              variant="outline"
-              onClick={onClearAll}
-              className="border-destructive text-destructive hover:bg-destructive/10"
-            >
+          {selectedSongs.length > 0 && !isProcessing && (
+            <Button variant="outline" onClick={onClearAll} className="border-destructive text-destructive hover:bg-destructive/10">
               Clear All
             </Button>
           )}
         </div>
 
-        {/* Helper Text */}
         {selectedSongs.length === 1 && (
           <p className="text-sm text-muted-foreground">
             Drop one more track to start the magic ✨
