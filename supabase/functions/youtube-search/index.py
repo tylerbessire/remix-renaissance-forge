@@ -7,8 +7,12 @@ from flask_cors import CORS
 app = Flask(__name__)
 CORS(app) # Enable CORS for all routes
 
-@app.route('/', methods=['POST'])
+@app.route('/', methods=['POST', 'OPTIONS'])
 def handle_request():
+    # Handle CORS preflight requests
+    if request.method == 'OPTIONS':
+        return '', 200
+    
     try:
         data = request.get_json()
         query = data.get('query')
