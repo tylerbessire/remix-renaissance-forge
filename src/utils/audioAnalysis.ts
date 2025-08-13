@@ -34,23 +34,23 @@ function fileToBase64(file: File): Promise<string> {
 export async function analyzeFile(songId: string, file: File): Promise<AnalysisResult> {
   try {
     const audioData = await fileToBase64(file);
-    const res = await fetch('/api/spectral-analysis', {
+    
+    const response = await fetch('https://jndnvpevsgpapntxaaeq.supabase.co/functions/v1/spectral-analysis', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpuZG52cGV2c2dwYXBudHhhYWVxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM4MzkzNDUsImV4cCI6MjA2OTQxNTM0NX0.UN_zIz4Te0bT-8f619OF1oHaz1zlqE4EMTfjOTE_IzI`
+      },
       body: JSON.stringify({ songId, audioData }),
     });
 
-    if (!res.ok) {
-      const errorBody = await res.text();
-      throw new Error(`Analysis API Error (${res.status}): ${errorBody}`);
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Analysis API Error (${response.status}): ${errorText}`);
     }
 
-    const data = await res.json();
-    if (!data.success || !data.analysis?.spectralFeatures) {
-      throw new Error('Analysis response is missing expected data.');
-    }
-
-    return data.analysis.spectralFeatures as AnalysisResult;
+    const data = await response.json();
+    return data as AnalysisResult;
   } catch (e) {
     console.error("File analysis failed:", e);
     throw e; // Re-throw to be handled by the calling hook
@@ -102,17 +102,98 @@ function calculateHarmonicScore(key1: AnalysisResult['key'], key2: AnalysisResul
     if (camelotDist > 2) {
       suggestions.push(`For better harmony, try a song in ${key1.camelot} or a compatible key.`);
     }
+  }
 
+  return { score, reasons, suggestions };
+}
+
+function calculateRhythmicScore(a1: AnalysisResult, a2: AnalysisResult) {
+  const reasons = [];
+  const suggestions = [];
+  
+  const bpmDiff = Math.abs(a1.beat_grid.bpm - a2.beat_grid.bpm);
+  const bpmScore = Math.max(0, 100 - bpmDiff * 2);
+  reasons.push(`BPM difference: ${bpmDiff.toFixed(1)} BPM.`);
+  
   const clarityScore = ((a1.rhythm.pulse_clarity + a2.rhythm.pulse_clarity) / 2) * 100;
   reasons.push(`Average rhythmic clarity is ${clarityScore.toFixed(0)}%.`);
 
   const complexityDiff = Math.abs(a1.rhythm.rhythmic_complexity - a2.rhythm.rhythmic_complexity);
   const complexityScore = Math.max(0, 100 - complexityDiff * 20);
+  
+  const score = (bpmScore * 0.5) + (clarityScore * 0.3) + (complexityScore * 0.2);
+  
+  if (bpmDiff > 20) {
+    suggestions.push(`Large BPM difference may require tempo adjustment.`);
+  }
+  
+  return { score, reasons, suggestions };
+}
 
+function calculateSpectralScore(a1: AnalysisResult, a2: AnalysisResult) {
+  const reasons = [];
+  const suggestions = [];
+  
+  const lowDiff = Math.abs(a1.spectral_balance.low_freq_content - a2.spectral_balance.low_freq_content);
+  const midDiff = Math.abs(a1.spectral_balance.mid_freq_content - a2.spectral_balance.mid_freq_content);
+  const highDiff = Math.abs(a1.spectral_balance.high_freq_content - a2.spectral_balance.high_freq_content);
+  
+  const spectralCompatibility = 100 - ((lowDiff + midDiff + highDiff) / 3) * 100;
+  reasons.push(`Spectral balance compatibility: ${spectralCompatibility.toFixed(0)}%.`);
+  
+  if (spectralCompatibility < 70) {
+    suggestions.push(`Consider EQ adjustments to balance frequency content.`);
+  }
+  
+  return { score: spectralCompatibility, reasons, suggestions };
+}
+
+function calculateEnergyScore(a1: AnalysisResult, a2: AnalysisResult) {
+  const reasons = [];
+  const suggestions = [];
+  
+  const energyDiff = Math.abs(a1.energy - a2.energy);
+  const brightnessDiff = Math.abs(a1.brightness - a2.brightness);
+  
+  const energyScore = Math.max(0, 100 - energyDiff * 50);
+  const brightnessScore = Math.max(0, 100 - brightnessDiff * 50);
+  
+  const score = (energyScore + brightnessScore) / 2;
+  
+  reasons.push(`Energy difference: ${(energyDiff * 100).toFixed(0)}%.`);
+  reasons.push(`Brightness difference: ${(brightnessDiff * 100).toFixed(0)}%.`);
+  
+  if (energyDiff > 0.3) {
+    suggestions.push(`Consider volume or dynamic processing to match energy levels.`);
+  }
+  
+  return { score, reasons, suggestions };
+}
+
+export function computeCompatibility(analyses: AnalysisResult[], weights: CompatibilityWeights = DEFAULT_WEIGHTS) {
+  if (analyses.length < 2) {
+    return { score: 0, reasons: ["Need at least 2 songs for compatibility analysis."], suggestions: [] };
+  }
+
+  const [a1, a2] = analyses;
+  
+  const harmonic = calculateHarmonicScore(a1.key, a2.key);
+  const rhythmic = calculateRhythmicScore(a1, a2);
+  const spectral = calculateSpectralScore(a1, a2);
+  const energy = calculateEnergyScore(a1, a2);
+
+  const totalScore = 
     harmonic.score * weights.harmonic +
     rhythmic.score * weights.rhythmic +
     spectral.score * weights.spectral +
     energy.score * weights.energy;
+
+  const reasons = [
+    ...harmonic.reasons,
+    ...rhythmic.reasons,
+    ...spectral.reasons,
+    ...energy.reasons,
+  ];
 
   const suggestions = [
     ...harmonic.suggestions,

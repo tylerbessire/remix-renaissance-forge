@@ -143,7 +143,7 @@ export const MashupZone = ({
                       </Button>
                     </div>
                   </div>
-                  {analysis && <TrackAnalysisDisplay features={analysis.features} />}
+                  {analysis && <TrackAnalysisDisplay features={analysis} />}
                 </div>
               );
             })}

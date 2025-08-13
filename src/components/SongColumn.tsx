@@ -141,7 +141,7 @@ export const SongColumn = ({
                     </Button>
                   </div>
                 </div>
-                {analysis && <AudioAnalysisDisplay features={analysis.features} />}
+                {analysis && <AudioAnalysisDisplay features={analysis} />}
               </div>
             );
           })}
