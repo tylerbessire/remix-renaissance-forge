@@ -1,11 +1,11 @@
 import os
 import json
-import subprocess
 import uuid
 import tempfile
 from flask import Flask, request, jsonify
 import supabase
 from flask_cors import CORS
+import yt_dlp
 
 app = Flask(__name__)
 CORS(app) # Enable CORS for all routes
@@ -32,15 +32,18 @@ def handle_request():
             temp_filename = f"{unique_id}_{safe_title}.mp3"
             temp_filepath = os.path.join(temp_dir, temp_filename)
 
-            command = [
-                'yt-dlp',
-                '-f', 'bestaudio/best',
-                '-x', '--audio-format', 'mp3',
-                '-o', temp_filepath,
-                youtube_url
-            ]
+            ydl_opts = {
+                'format': 'bestaudio/best',
+                'outtmpl': temp_filepath,
+                'postprocessors': [{
+                    'key': 'FFmpegExtractAudio',
+                    'preferredcodec': 'mp3',
+                    'preferredquality': '192',
+                }],
+            }
 
-            subprocess.run(command, check=True, capture_output=True)
+            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                ydl.download([youtube_url])
 
             with open(temp_filepath, 'rb') as f:
                 audio_content = f.read()
@@ -58,9 +61,6 @@ def handle_request():
                 "storage_path": storage_path
             })
 
-    except subprocess.CalledProcessError as e:
-        print(f"yt-dlp error: {e.stderr.decode()}")
-        return jsonify({"error": "Failed to download audio from YouTube", "details": e.stderr.decode()}), 500
     except Exception as e:
         print(f"An unexpected error occurred: {str(e)}")
         return jsonify({"error": "An unexpected error occurred", "details": str(e)}), 500

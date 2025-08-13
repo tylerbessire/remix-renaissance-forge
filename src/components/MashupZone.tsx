@@ -8,8 +8,10 @@ import { useMashupGenerator } from "@/hooks/useMashupGenerator";
 import { CompatibilityScore } from "@/components/CompatibilityScore";
 import { useAudioAnalysis } from "@/hooks/useAudioAnalysis";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 import { TrackAnalysisDisplay } from "./TrackAnalysisDisplay";
 import { MashupTimeline, type MashupSection } from "./MashupTimeline";
+import { ClaudeCollaboration } from "./ClaudeCollaboration";
 
 interface Song {
   id: string;
@@ -41,14 +43,16 @@ export const MashupZone = ({
 }: MashupZoneProps) => {
   const {
     generateMashup,
-    isProcessing,
+    isProcessing: isGenerating,
     progress,
     processingStep,
-    mashupResult
+    mashupResult,
+    setMashupResult
   } = useMashupGenerator();
 
   const { analyzeMashupCompatibility, analyzeSong, getAnalysis, isAnalyzing } = useAudioAnalysis();
   const [compatibility, setCompatibility] = useState<{ score: number; reasons: string[]; suggestions: string[] } | null>(null);
+  const [isIterating, setIsIterating] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
@@ -68,6 +72,40 @@ export const MashupZone = ({
   const startMashup = async () => {
     if (selectedSongs.length < 2) return;
     await generateMashup(selectedSongs);
+  };
+
+  const handleIteration = async (feedback: string) => {
+    if (!mashupResult) return;
+    setIsIterating(true);
+    toast.info("Claude is working on a new version...");
+
+    try {
+      const { data, error } = await supabase.functions.invoke('claude-mashup-iteration', {
+        body: {
+          mashupPlan: {
+            title: mashupResult.title,
+            concept: mashupResult.concept,
+            timeline: mashupResult.timeline,
+          },
+          userFeedback: feedback,
+          songs: selectedSongs,
+          analysisData: selectedSongs.map(s => getAnalysis(s.id)),
+        },
+      });
+
+      if (error || !data.success) {
+        throw new Error(error?.message || "Failed to get revised plan.");
+      }
+
+      // We only update the concept and timeline, not the audio URL yet
+      setMashupResult(prev => prev ? ({ ...prev, title: data.title, concept: data.concept, timeline: data.timeline }) : null);
+      toast.success("Mashup concept updated by Claude!");
+
+    } catch (e: any) {
+      toast.error(e.message);
+    } finally {
+      setIsIterating(false);
+    }
   };
 
   return (
@@ -114,41 +152,48 @@ export const MashupZone = ({
       </div>
 
       <div className="space-y-4">
-        {isProcessing && (
+        {(isGenerating || isIterating) && (
           <div className="space-y-2 text-center">
-            <p className="text-sm font-medium text-primary">{processingStep}</p>
-            <Progress value={progress} className="w-full" />
+            <p className="text-sm font-medium text-primary">{isIterating ? 'Claude is iterating...' : processingStep}</p>
+            {isGenerating && <Progress value={progress} className="w-full" />}
           </div>
         )}
 
-        {compatibility && !isProcessing && selectedSongs.length >= 2 && (
+        {compatibility && !isGenerating && !isIterating && selectedSongs.length >= 2 && (
           <CompatibilityScore score={compatibility.score} reasons={compatibility.reasons} suggestions={compatibility.suggestions} />
         )}
 
-        {mashupResult && !isProcessing && (
-          <div className="space-y-3 p-4 bg-background rounded-lg border">
-            <div className="text-center">
-              <h3 className="text-lg font-bold text-primary">"{mashupResult.title}"</h3>
-              <p className="text-sm text-muted-foreground italic">{mashupResult.concept}</p>
+        {mashupResult && !isGenerating && (
+          <div className="space-y-4">
+            <div className="space-y-3 p-4 bg-background rounded-lg border">
+              <div className="text-center">
+                <h3 className="text-lg font-bold text-primary">"{mashupResult.title}"</h3>
+                <p className="text-sm text-muted-foreground italic">{mashupResult.concept}</p>
+              </div>
+              {mashupResult.timeline && <MashupTimeline timeline={mashupResult.timeline} />}
+              <div className="flex gap-2 justify-center">
+                <Button size="sm" onClick={() => { if (audioRef.current) audioRef.current.pause(); audioRef.current = new Audio(mashupResult.audioUrl); audioRef.current.play().catch(e => toast.error('Error playing audio.')); }}>
+                  <Play className="h-4 w-4 mr-2" /> Play
+                </Button>
+                <Button size="sm" variant="outline" onClick={() => { const link = document.createElement('a'); link.href = mashupResult.audioUrl; link.download = `${mashupResult.title}.mp3`; link.click(); }}>
+                  <Download className="h-4 w-4 mr-2" /> Download
+                </Button>
+              </div>
             </div>
-            {mashupResult.timeline && <MashupTimeline timeline={mashupResult.timeline} />}
-            <div className="flex gap-2 justify-center">
-              <Button size="sm" onClick={() => { if (audioRef.current) audioRef.current.pause(); audioRef.current = new Audio(mashupResult.audioUrl); audioRef.current.play().catch(e => toast.error('Error playing audio.')); }}>
-                <Play className="h-4 w-4 mr-2" /> Play
-              </Button>
-              <Button size="sm" variant="outline" onClick={() => { const link = document.createElement('a'); link.href = mashupResult.audioUrl; link.download = `${mashupResult.title}.mp3`; link.click(); }}>
-                <Download className="h-4 w-4 mr-2" /> Download
-              </Button>
-            </div>
+            <ClaudeCollaboration
+              mashupConcept={mashupResult.concept}
+              analysisData={selectedSongs.map(s => getAnalysis(s.id))}
+              onIterationRequest={handleIteration}
+            />
           </div>
         )}
       </div>
 
       <div className="flex flex-col gap-3">
         {selectedSongs.length >= 2 && (
-          <Button onClick={startMashup} size="lg" disabled={isProcessing} className="font-bold w-full">
+          <Button onClick={startMashup} size="lg" disabled={isGenerating || isIterating} className="font-bold w-full">
             <Zap className="h-5 w-5 mr-2" />
-            {isProcessing ? "Creating..." : "Create Mashup"}
+            {isGenerating ? "Creating..." : (isIterating ? "Update & Re-Generate" : "Create Mashup")}
           </Button>
         )}
         {selectedSongs.length > 0 && (
