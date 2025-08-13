@@ -35,9 +35,7 @@ Song ${index + 1} (id: "${song.song_id}"): "${song.name}" by ${song.artist}"
 - **Timbre**: Brightness is ${analysis.brightness?.toFixed(3)}, estimated psychoacoustic roughness is ${roughness.estimated_roughness?.toFixed(3)}.
 - **Energy**: Overall energy level is ${analysis.energy?.toFixed(3)}.
       `.trim();
-    }).join('
-
-');
+    }).join('\n\n');
 
     const prompt = `
 You are Syncrasis, an AI DJ and legendary mashup artist. Your task is to create a detailed, professional production plan for a mashup of the provided songs. Deliver this plan as a single, valid JSON object, without any additional commentary or markdown.
