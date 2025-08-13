@@ -1,5 +1,3 @@
-// src/utils/audioAnalysis.ts
-
 // --- Interfaces ---
 export interface AnalysisResult {
   version: string;
@@ -50,7 +48,7 @@ export async function analyzeFile(songId: string, file: File): Promise<AnalysisR
     if (!data.success || !data.analysis?.spectralFeatures) {
       throw new Error('Analysis response is missing expected data.');
     }
-
+    
     return data.analysis.spectralFeatures as AnalysisResult;
   } catch (e) {
     console.error("File analysis failed:", e);
@@ -60,12 +58,19 @@ export async function analyzeFile(songId: string, file: File): Promise<AnalysisR
 
 // --- Compatibility Scoring Logic ---
 
-const WEIGHTS = {
-  HARMONIC: 0.4,
-  RHYTHMIC: 0.3,
-  SPECTRAL: 0.2,
-  ENERGY: 0.1,
+const DEFAULT_WEIGHTS = {
+  harmonic: 0.4,
+  rhythmic: 0.3,
+  spectral: 0.2,
+  energy: 0.1,
 };
+
+export interface CompatibilityWeights {
+  harmonic: number;
+  rhythmic: number;
+  spectral: number;
+  energy: number;
+}
 
 const CAMELOT_WHEEL: { [key: string]: number } = {
   '1A': 1, '1B': 1, '2A': 2, '2B': 2, '3A': 3, '3B': 3, '4A': 4, '4B': 4,
@@ -97,7 +102,7 @@ function calculateHarmonicScore(key1: AnalysisResult['key'], key2: AnalysisResul
       suggestions.push(`For better harmony, try a song in ${key1.camelot} or a compatible key.`);
     }
   }
-
+  
   const tuningDiff = Math.abs(key1.cents_off - key2.cents_off);
   if (tuningDiff > 15) {
     score -= 10;
@@ -110,7 +115,7 @@ function calculateHarmonicScore(key1: AnalysisResult['key'], key2: AnalysisResul
 function calculateRhythmicScore(a1: AnalysisResult, a2: AnalysisResult) {
   const reasons = [];
   const suggestions = [];
-
+  
   const bpmDiff = Math.abs(a1.beat_grid.bpm - a2.beat_grid.bpm);
   const bpmScore = Math.max(0, 100 - bpmDiff * 5 - Math.pow(bpmDiff, 2) * 0.1);
   reasons.push(`Tempo difference is ${bpmDiff.toFixed(1)} BPM.`);
@@ -123,7 +128,7 @@ function calculateRhythmicScore(a1: AnalysisResult, a2: AnalysisResult) {
 
   const complexityDiff = Math.abs(a1.rhythm.rhythmic_complexity - a2.rhythm.rhythmic_complexity);
   const complexityScore = Math.max(0, 100 - complexityDiff * 20);
-
+  
   const score = bpmScore * 0.6 + clarityScore * 0.3 + complexityScore * 0.1;
   return { score, reasons, suggestions };
 }
@@ -132,7 +137,7 @@ function calculateSpectralScore(a1: AnalysisResult, a2: AnalysisResult) {
     const reasons = [];
     const suggestions = [];
 
-    const balanceDiff =
+    const balanceDiff = 
         Math.abs(a1.spectral_balance.low_freq_content - a2.spectral_balance.low_freq_content) +
         Math.abs(a1.spectral_balance.mid_freq_content - a2.spectral_balance.mid_freq_content) +
         Math.abs(a1.spectral_balance.high_freq_content - a2.spectral_balance.high_freq_content);
@@ -145,10 +150,10 @@ function calculateSpectralScore(a1: AnalysisResult, a2: AnalysisResult) {
     const brightnessDiff = Math.abs(a1.brightness - a2.brightness);
     const brightnessScore = Math.max(0, 100 - brightnessDiff * 200);
     reasons.push(`Timbral brightness is ${brightnessScore < 80 ? 'somewhat different' : 'similar'}.`);
-
+    
     const totalRoughness = a1.roughness.estimated_roughness + a2.roughness.estimated_roughness;
     const roughnessScore = Math.max(0, 100 - totalRoughness * 2);
-
+    
     const score = balanceScore * 0.5 + brightnessScore * 0.3 + roughnessScore * 0.2;
     return { score, reasons, suggestions };
 }
@@ -162,7 +167,10 @@ function calculateEnergyScore(energy1: number, energy2: number) {
 }
 
 
-export function computeCompatibility(analyses: AnalysisResult[]) {
+export function computeCompatibility(
+  analyses: AnalysisResult[],
+  weights: CompatibilityWeights = DEFAULT_WEIGHTS
+) {
   if (analyses.length < 2) {
     return { score: 0, reasons: ["Need at least 2 songs"], suggestions: [] };
   }
@@ -173,11 +181,11 @@ export function computeCompatibility(analyses: AnalysisResult[]) {
   const spectral = calculateSpectralScore(a1, a2);
   const energy = calculateEnergyScore(a1.energy, a2.energy);
 
-  const totalScore =
-    harmonic.score * WEIGHTS.HARMONIC +
-    rhythmic.score * WEIGHTS.RHYTHMIC +
-    spectral.score * WEIGHTS.SPECTRAL +
-    energy.score * WEIGHTS.ENERGY;
+  const totalScore = 
+    harmonic.score * weights.harmonic +
+    rhythmic.score * weights.rhythmic +
+    spectral.score * weights.spectral +
+    energy.score * weights.energy;
 
   const reasons = [
     ...harmonic.reasons,
@@ -185,7 +193,7 @@ export function computeCompatibility(analyses: AnalysisResult[]) {
     ...spectral.reasons,
     ...energy.reasons,
   ];
-
+  
   const suggestions = [
     ...harmonic.suggestions,
     ...rhythmic.suggestions,
