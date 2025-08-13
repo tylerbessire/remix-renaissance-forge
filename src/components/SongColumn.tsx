@@ -20,7 +20,7 @@ interface SongColumnProps {
   title: string;
   songs: Song[];
   onSongsChange: (songs: Song[]) => void;
-  onDragStart: (song: Song, columnId: string) => void;
+  onDragStart: (e: React.DragEvent, song: Song) => void;
   className?: string;
 }
 
@@ -66,9 +66,7 @@ export const SongColumn = ({
   };
 
   const handleDragStart = (e: React.DragEvent, song: Song) => {
-    const songMetadata = { id: song.id, name: song.name, artist: song.artist };
-    e.dataTransfer.setData('application/json', JSON.stringify(songMetadata));
-    onDragStart(song, columnTitle);
+    onDragStart(e, song);
   };
 
   return (

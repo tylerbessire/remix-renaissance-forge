@@ -8,11 +8,12 @@ import { Link } from "react-router-dom";
 import { YouTubeSearch } from "@/components/YouTubeSearch";
 import { supabase } from "@/integrations/supabase/client";
 import { type YouTubeSearchResult } from "@/components/YouTubeSearch";
+import { SongLibrary } from "@/components/SongLibrary";
 
 // This interface is now updated to support both file uploads and YouTube downloads
 interface Song {
   id: string;
-  name: string;
+  name:string;
   artist: string;
   file?: File;
   storage_path?: string;
@@ -31,6 +32,7 @@ const Index = () => {
     { id: "3", title: "Chill Zone", songs: [] },
   ]);
   
+  const [songLibrary, setSongLibrary] = useState<Song[]>([]);
   const [selectedSongs, setSelectedSongs] = useState<Song[]>([]);
   
   const [fileRegistry, setFileRegistry] = useState<Map<string, File>>(new Map());
@@ -86,7 +88,7 @@ const Index = () => {
         const song: Song = { ...songMetadata, file };
         addToMashup(song);
       } else {
-        const originalSong = columns.flatMap(c => c.songs).find(s => s.id === songMetadata.id);
+        const originalSong = [...columns.flatMap(c => c.songs), ...songLibrary].find(s => s.id === songMetadata.id);
         if (originalSong) {
           addToMashup(originalSong);
         } else {
@@ -96,16 +98,22 @@ const Index = () => {
     }
   };
 
+  const handleSongDragStart = (e: React.DragEvent, song: Song) => {
+    e.dataTransfer.setData('application/json', JSON.stringify(song));
+  };
+
   const handleYouTubeSongSelected = async (ytSong: YouTubeSearchResult) => {
     toast.info(`Downloading "${ytSong.title}"...`);
 
     try {
-      const { data, error } = await supabase.functions.invoke<{ success: boolean, storage_path: string }>('youtube-download', {
+      const { data, error } = await supabase.functions.invoke<{ success: boolean, storage_path: string, details?: string }>('youtube-download', {
         body: { url: ytSong.url, title: ytSong.title },
       });
 
       if (error || !data?.success || !data.storage_path) {
-        throw new Error(error?.message || 'Download failed on the backend.');
+        console.error('Download error:', error);
+        console.error('Download data:', data);
+        throw new Error(error?.message || data?.details || 'Download failed on the backend.');
       }
 
       const newSong: Song = {
@@ -115,11 +123,8 @@ const Index = () => {
         storage_path: data.storage_path,
       };
 
-      const firstColumn = columns[0];
-      const updatedSongs = [...firstColumn.songs, newSong];
-      updateColumnSongs(firstColumn.id, updatedSongs);
-
-      toast.success(`"${ytSong.title}" added to '${firstColumn.title}'!`);
+      setSongLibrary(prev => [...prev, newSong]);
+      toast.success(`"${ytSong.title}" added to your library!`);
 
     } catch (e: any) {
       toast.error(`Failed to add song: ${e.message}`);
@@ -142,7 +147,8 @@ const Index = () => {
               </div>
             </div>
             
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-4">
+              <SongLibrary songs={songLibrary} onSongDragStart={handleSongDragStart} />
               <Link to="/auth">
                 <Button size="sm" variant="secondary">Account</Button>
               </Link>
@@ -168,7 +174,7 @@ const Index = () => {
                 title={column.title}
                 songs={column.songs}
                 onSongsChange={(songs) => updateColumnSongs(column.id, songs)}
-                onDragStart={() => {}}
+                onDragStart={handleSongDragStart}
               />
             ))}
           </div>
