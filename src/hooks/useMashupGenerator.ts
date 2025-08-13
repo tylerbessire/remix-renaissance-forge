@@ -194,5 +194,6 @@ export const useMashupGenerator = () => {
     progress,
     processingStep,
     mashupResult,
+    setMashupResult,
   };
 };
