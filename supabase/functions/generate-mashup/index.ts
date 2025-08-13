@@ -59,9 +59,9 @@ Deno.serve(async (req) => {
   } catch (error) {
     console.error('Error in generate-mashup function:', error);
     return new Response(
-      JSON.stringify({
-        error: 'Failed to start mashup generation job',
-        details: error.message
+      JSON.stringify({ 
+        error: 'Failed to start mashup generation job', 
+        details: error.message 
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
     );
