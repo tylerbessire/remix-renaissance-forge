@@ -8,12 +8,14 @@ import { MessageCircle, Sparkles, Music2, Brain } from 'lucide-react';
 interface ClaudeCollaborationProps {
   mashupConcept: string;
   analysisData?: any[];
+  quickSuggestions?: string[];
   onIterationRequest: (feedback: string) => void;
 }
 
 export function ClaudeCollaboration({ 
   mashupConcept, 
   analysisData = [], 
+  quickSuggestions = [],
   onIterationRequest 
 }: ClaudeCollaborationProps) {
   const [feedback, setFeedback] = useState('');
@@ -31,7 +33,7 @@ export function ClaudeCollaboration({
     }
   };
 
-  const quickSuggestions = [
+  const defaultSuggestions = [
     "Make it more energetic and danceable",
     "Add more vocal harmonies",
     "Create a slower, emotional bridge",
@@ -39,6 +41,8 @@ export function ClaudeCollaboration({
     "Make the transition smoother",
     "Add orchestral elements"
   ];
+
+  const suggestions = quickSuggestions.length > 0 ? quickSuggestions : defaultSuggestions;
 
   return (
     <Card className="w-full">
@@ -72,11 +76,16 @@ export function ClaudeCollaboration({
               <span className="font-medium text-sm">Technical Analysis Available</span>
             </div>
             <div className="flex flex-wrap gap-2">
-              {analysisData.map((analysis, i) => (
-                <Badge key={i} variant="secondary" className="text-xs">
-                  Song {i + 1}: {analysis?.analysis?.spectralFeatures?.tempo || 'Unknown'} BPM
-                </Badge>
-              ))}
+              {analysisData.map((data, i) => {
+                const analysis = data?.spectralFeatures || {};
+                const keyInfo = analysis.key || {};
+                const beatGrid = analysis.beat_grid || {};
+                return (
+                  <Badge key={i} variant="secondary" className="text-xs font-mono">
+                    Song {i + 1}: {beatGrid.bpm?.toFixed(0)} BPM, {keyInfo.name}, {analysis.energy?.toFixed(2)} Energy
+                  </Badge>
+                )
+              })}
             </div>
           </div>
         )}
@@ -85,7 +94,7 @@ export function ClaudeCollaboration({
         <div className="space-y-3">
           <span className="text-sm font-medium">Quick Suggestions</span>
           <div className="grid grid-cols-2 gap-2">
-            {quickSuggestions.map((suggestion, index) => (
+            {suggestions.map((suggestion, index) => (
               <Button
                 key={index}
                 variant="outline"
