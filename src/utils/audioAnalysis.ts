@@ -1,3 +1,4 @@
+
 // --- Interfaces ---
 export interface AnalysisResult {
   version: string;
@@ -48,7 +49,7 @@ export async function analyzeFile(songId: string, file: File): Promise<AnalysisR
     if (!data.success || !data.analysis?.spectralFeatures) {
       throw new Error('Analysis response is missing expected data.');
     }
-    
+
     return data.analysis.spectralFeatures as AnalysisResult;
   } catch (e) {
     console.error("File analysis failed:", e);
@@ -101,99 +102,18 @@ function calculateHarmonicScore(key1: AnalysisResult['key'], key2: AnalysisResul
     if (camelotDist > 2) {
       suggestions.push(`For better harmony, try a song in ${key1.camelot} or a compatible key.`);
     }
-  }
-  
-  const tuningDiff = Math.abs(key1.cents_off - key2.cents_off);
-  if (tuningDiff > 15) {
-    score -= 10;
-    reasons.push(`⚠️ Tuning differs by ${tuningDiff.toFixed(0)} cents, which may require pitch correction.`);
-  }
-
-  return { score: Math.max(0, score), reasons, suggestions };
-}
-
-function calculateRhythmicScore(a1: AnalysisResult, a2: AnalysisResult) {
-  const reasons = [];
-  const suggestions = [];
-  
-  const bpmDiff = Math.abs(a1.beat_grid.bpm - a2.beat_grid.bpm);
-  const bpmScore = Math.max(0, 100 - bpmDiff * 5 - Math.pow(bpmDiff, 2) * 0.1);
-  reasons.push(`Tempo difference is ${bpmDiff.toFixed(1)} BPM.`);
-  if (bpmDiff > 10) {
-      suggestions.push(`The tempo difference is large. Consider extensive time-stretching or a transition section.`);
-  }
 
   const clarityScore = ((a1.rhythm.pulse_clarity + a2.rhythm.pulse_clarity) / 2) * 100;
   reasons.push(`Average rhythmic clarity is ${clarityScore.toFixed(0)}%.`);
 
   const complexityDiff = Math.abs(a1.rhythm.rhythmic_complexity - a2.rhythm.rhythmic_complexity);
   const complexityScore = Math.max(0, 100 - complexityDiff * 20);
-  
-  const score = bpmScore * 0.6 + clarityScore * 0.3 + complexityScore * 0.1;
-  return { score, reasons, suggestions };
-}
 
-function calculateSpectralScore(a1: AnalysisResult, a2: AnalysisResult) {
-    const reasons = [];
-    const suggestions = [];
-
-    const balanceDiff = 
-        Math.abs(a1.spectral_balance.low_freq_content - a2.spectral_balance.low_freq_content) +
-        Math.abs(a1.spectral_balance.mid_freq_content - a2.spectral_balance.mid_freq_content) +
-        Math.abs(a1.spectral_balance.high_freq_content - a2.spectral_balance.high_freq_content);
-    const balanceScore = Math.max(0, 100 - balanceDiff * 50);
-    reasons.push(`Spectral balance similarity is ${balanceScore.toFixed(0)}%.`);
-    if (balanceScore < 70) {
-        suggestions.push("Songs have very different frequency content; careful EQing will be required to avoid a muddy mix.");
-    }
-
-    const brightnessDiff = Math.abs(a1.brightness - a2.brightness);
-    const brightnessScore = Math.max(0, 100 - brightnessDiff * 200);
-    reasons.push(`Timbral brightness is ${brightnessScore < 80 ? 'somewhat different' : 'similar'}.`);
-    
-    const totalRoughness = a1.roughness.estimated_roughness + a2.roughness.estimated_roughness;
-    const roughnessScore = Math.max(0, 100 - totalRoughness * 2);
-    
-    const score = balanceScore * 0.5 + brightnessScore * 0.3 + roughnessScore * 0.2;
-    return { score, reasons, suggestions };
-}
-
-function calculateEnergyScore(energy1: number, energy2: number) {
-    const diff = Math.abs(energy1 - energy2);
-    const score = Math.max(0, 100 - diff * 150);
-    const reasons = [`Energy levels are ${diff < 0.2 ? 'very similar' : diff < 0.4 ? 'moderately different' : 'very different'}.`];
-    const suggestions = diff > 0.4 ? ["Bridge different energy levels with build-ups or breakdowns."] : [];
-    return { score, reasons, suggestions };
-}
-
-
-export function computeCompatibility(
-  analyses: AnalysisResult[],
-  weights: CompatibilityWeights = DEFAULT_WEIGHTS
-) {
-  if (analyses.length < 2) {
-    return { score: 0, reasons: ["Need at least 2 songs"], suggestions: [] };
-  }
-  const [a1, a2] = analyses;
-
-  const harmonic = calculateHarmonicScore(a1.key, a2.key);
-  const rhythmic = calculateRhythmicScore(a1, a2);
-  const spectral = calculateSpectralScore(a1, a2);
-  const energy = calculateEnergyScore(a1.energy, a2.energy);
-
-  const totalScore = 
     harmonic.score * weights.harmonic +
     rhythmic.score * weights.rhythmic +
     spectral.score * weights.spectral +
     energy.score * weights.energy;
 
-  const reasons = [
-    ...harmonic.reasons,
-    ...rhythmic.reasons,
-    ...spectral.reasons,
-    ...energy.reasons,
-  ];
-  
   const suggestions = [
     ...harmonic.suggestions,
     ...rhythmic.suggestions,

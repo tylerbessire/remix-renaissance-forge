@@ -1,14 +1,12 @@
-import "https://deno.land/x/xhr@0.1.0/mod.ts";
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-serve(async (req) => {
+Deno.serve(async (req) => {
+  // This is needed if you're planning to invoke your function from a browser.
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+    return new Response('ok', { headers: corsHeaders })
   }
 
   try {
@@ -37,7 +35,9 @@ Song ${index + 1} (id: "${song.song_id}"): "${song.name}" by ${song.artist}"
 - **Timbre**: Brightness is ${analysis.brightness?.toFixed(3)}, estimated psychoacoustic roughness is ${roughness.estimated_roughness?.toFixed(3)}.
 - **Energy**: Overall energy level is ${analysis.energy?.toFixed(3)}.
       `.trim();
-    }).join('\n\n');
+    }).join('
+
+');
 
     const prompt = `
 You are Syncrasis, an AI DJ and legendary mashup artist. Your task is to create a detailed, professional production plan for a mashup of the provided songs. Deliver this plan as a single, valid JSON object, without any additional commentary or markdown.

@@ -1,14 +1,11 @@
-import "https://deno.land/x/xhr@0.1.0/mod.ts";
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+    return new Response('ok', { headers: corsHeaders });
   }
 
   try {
@@ -20,13 +17,21 @@ serve(async (req) => {
     }
 
     const songsContext = songs.map((song: any, index: number) => {
-      const analysis = analysisData?.[index] || {};
+      const analysis = analysisData?.[index]?.spectralFeatures || {};
+      const keyInfo = analysis.key || {};
+      const beatGrid = analysis.beat_grid || {};
+      const rhythm = analysis.rhythm || {};
+      const spectral = analysis.spectral_balance || {};
+      const roughness = analysis.roughness || {};
+
       return `
-Song ${index + 1} (id: "${song.song_id}"): "${song.name}" by ${song.artist}
-- BPM: ${analysis.bpm?.toFixed(2)}
-- Key: ${analysis.key}
-- Duration: ${analysis.duration_seconds?.toFixed(2)}s
-- Energy: ${analysis.energy?.toFixed(3)}
+Song ${index + 1} (id: "${song.song_id}"): "${song.name}" by ${song.artist}"
+- **Key**: ${keyInfo.name} (${keyInfo.camelot}) with confidence ${keyInfo.confidence?.toFixed(2)}. Tuning is off by ${keyInfo.cents_off?.toFixed(1)} cents.
+- **Tempo**: ${beatGrid.bpm?.toFixed(1)} BPM with confidence ${beatGrid.bpm_confidence?.toFixed(2)}.
+- **Rhythm**: Pulse clarity is ${rhythm.pulse_clarity?.toFixed(3)}, complexity is ${rhythm.rhythmic_complexity?.toFixed(3)}.
+- **Spectral Balance**: Low/Mid/High content: ${spectral.low_freq_content?.toFixed(3)} / ${spectral.mid_freq_content?.toFixed(3)} / ${spectral.high_freq_content?.toFixed(3)}.
+- **Timbre**: Brightness is ${analysis.brightness?.toFixed(3)}, estimated psychoacoustic roughness is ${roughness.estimated_roughness?.toFixed(3)}.
+- **Energy**: Overall energy level is ${analysis.energy?.toFixed(3)}.
       `.trim();
     }).join('\n\n');
 

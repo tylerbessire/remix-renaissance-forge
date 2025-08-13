@@ -1,4 +1,3 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -14,9 +13,9 @@ interface MashupRequest {
   }>;
 }
 
-serve(async (req) => {
+
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+    return new Response('ok', { headers: corsHeaders })
   }
 
   try {
@@ -29,40 +28,15 @@ serve(async (req) => {
       );
     }
 
-    // Create a temporary file for the input data
-    const tempInputPath = await Deno.makeTempFile({ suffix: ".json" });
-    await Deno.writeFile(tempInputPath, new TextEncoder().encode(JSON.stringify({ songs })));
-
-    try {
-      const command = new Deno.Command("python3", {
-        args: ["./supabase/functions/generate-mashup/index.py", tempInputPath],
-      });
-
-      const { code, stdout, stderr } = await command.output();
-
-      if (code !== 0) {
-        const errorOutput = new TextDecoder().decode(stderr);
-        console.error(`Python script error: ${errorOutput}`);
-        throw new Error(`Failed to start mashup job: ${errorOutput}`);
-      }
-
-      const output = new TextDecoder().decode(stdout);
-      const result = JSON.parse(output);
-
-      return new Response(
-        JSON.stringify(result),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-
-    } finally {
-      await Deno.remove(tempInputPath);
-    }
 
   } catch (error) {
-    console.error('Error generating mashup:', error);
+    console.error('Error in generate-mashup function:', error);
     return new Response(
-      JSON.stringify({ error: 'Failed to generate mashup', details: error.message }),
+      JSON.stringify({ 
+        error: 'Failed to start mashup generation job', 
+        details: error.message 
+      }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
     );
   }
-});
+
