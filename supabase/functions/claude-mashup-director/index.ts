@@ -21,32 +21,57 @@ serve(async (req) => {
 
     // Prepare detailed context for the AI, using the rich data from our new analysis function
     const songsContext = songs.map((song: any, index: number) => {
-      const analysis = analysisData?.[index] || {};
+      const analysis = analysisData?.[index]?.spectralFeatures || {};
+      const keyInfo = analysis.key || {};
+      const beatGrid = analysis.beat_grid || {};
+      const rhythm = analysis.rhythm || {};
+      const spectral = analysis.spectral_balance || {};
+      const roughness = analysis.roughness || {};
+
       return `
-Song ${index + 1} (id: "${song.song_id}"): "${song.name}" by ${song.artist}
-- BPM: ${analysis.bpm?.toFixed(2)}
-- Key: ${analysis.key}
-- Duration: ${analysis.duration_seconds?.toFixed(2)}s
-- Energy: ${analysis.energy?.toFixed(3)}
-- Harmonic Complexity: ${analysis.harmonic_complexity?.toFixed(3)}
-- Chroma Profile: [${analysis.chroma_profile?.map(v => v.toFixed(3)).join(', ')}]
+Song ${index + 1} (id: "${song.song_id}"): "${song.name}" by ${song.artist}"
+- **Key**: ${keyInfo.name} (${keyInfo.camelot}) with confidence ${keyInfo.confidence?.toFixed(2)}. Tuning is off by ${keyInfo.cents_off?.toFixed(1)} cents.
+- **Tempo**: ${beatGrid.bpm?.toFixed(1)} BPM with confidence ${beatGrid.bpm_confidence?.toFixed(2)}.
+- **Rhythm**: Pulse clarity is ${rhythm.pulse_clarity?.toFixed(3)}, complexity is ${rhythm.rhythmic_complexity?.toFixed(3)}.
+- **Spectral Balance**: Low/Mid/High content: ${spectral.low_freq_content?.toFixed(3)} / ${spectral.mid_freq_content?.toFixed(3)} / ${spectral.high_freq_content?.toFixed(3)}.
+- **Timbre**: Brightness is ${analysis.brightness?.toFixed(3)}, estimated psychoacoustic roughness is ${roughness.estimated_roughness?.toFixed(3)}.
+- **Energy**: Overall energy level is ${analysis.energy?.toFixed(3)}.
       `.trim();
     }).join('\n\n');
 
     const prompt = `
-You are Syncrasis, an AI DJ and legendary mashup artist. You don't just mix tracks; you weave them into a new musical story. Your task is to envision and architect a brilliant mashup from the provided songs, delivering a production plan as a single, valid JSON object. No commentary, no markdown, just the plan.
+You are Syncrasis, an AI DJ and legendary mashup artist. Your task is to create a detailed, professional production plan for a mashup of the provided songs. Deliver this plan as a single, valid JSON object, without any additional commentary or markdown.
 
-Here are the raw materials, the sonic clay I'm giving you to mold:
+Here is the deep musical analysis of the tracks:
 ${songsContext}
 
-Now, enter your creative flow state. Listen to the harmonies, the rhythms, the souls of these tracks. Find the narrative. What story do they want to tell together? Dream up a concept, a title that captures the essence of this new creation.
-
-Then, build the architectural blueprint for this 2-3 minute journey. Your plan must follow this JSON structure precisely:
+Based on this rich data, create the architectural blueprint for a 2-3 minute masterpiece. Your plan must follow this JSON structure precisely:
 
 {
   "title": "Your evocative, unforgettable title",
   "artistCredits": "Artist A vs. Artist B",
   "concept": "Your 1-2 sentence story or theme. Make it compelling.",
+  "genre": "A plausible genre for the mashup (e.g., 'Progressive House', 'Synthwave Pop')",
+  "emotionalArc": {
+    "description": "Describe the emotional journey, e.g., 'Starts melancholic, builds to a euphoric climax, and resolves with a sense of hope.'",
+    "curve": [
+      {"time": "0%", "intensity": 0.2, "mood": "Introspective"},
+      {"time": "25%", "intensity": 0.5, "mood": "Building Tension"},
+      {"time": "50%", "intensity": 0.8, "mood": "Energetic Peak"},
+      {"time": "75%", "intensity": 1.0, "mood": "Euphoric Climax"},
+      {"time": "100%", "intensity": 0.3, "mood": "Reflective Outro"}
+    ]
+  },
+  "problemsAndSolutions": [
+    {
+      "problem": "The keys of the two songs are harmonically distant.",
+      "solution": "Pitch-shift the vocals of Song 2 up by 2 semitones to match Song 1's key of C Major. The instrumental stems will be adjusted to fit the new harmony."
+    },
+    {
+      "problem": "The tempos have a significant difference (110 vs 128 BPM).",
+      "solution": "Use Song 2's 128 BPM as the target. Time-stretch Song 1 using a high-quality algorithm, preserving vocal formants, to match this tempo."
+    }
+  ],
   "global": {
     "targetBPM": 128,
     "targetKey": "A Minor"
@@ -60,26 +85,25 @@ Then, build the architectural blueprint for this 2-3 minute journey. Your plan m
         { "songId": "song_id_1", "stem": "ambience", "volume_db": -5, "effect": "long reverb" },
         { "songId": "song_id_2", "stem": "drums", "volume_db": -8, "filter": "low-pass 200Hz, building up" }
       ]
-    },
-    {
-      "time_start": "0:20",
-      "duration_seconds": 40,
-      "description": "First Contact - The main vocal enters over a new beat.",
-      "layers": [
-        { "songId": "song_id_1", "stem": "vocals", "volume_db": 0 },
-        { "songId": "song_id_2", "stem": "bass", "volume_db": -2 },
-        { "songId": "song_id_2", "stem": "drums", "volume_db": -3 }
-      ]
     }
+  ],
+  "quickSuggestions": [
+    "Make it more energetic and danceable.",
+    "Emphasize the bass and drums more.",
+    "Create a slower, more emotional bridge section.",
+    "Add more vocal harmonies and ad-libs.",
+    "Make the transitions between sections smoother and more creative.",
+    "Introduce a surprising element from a third genre."
   ]
 }
 
-- **title**: Give it a name that feels like a classic.
-- **artistCredits**: Credit the original artists.
-- **concept**: What's the big idea? The feeling? The story?
-- **global**: Find the perfect tempo and key that unifies the tracks.
-- **timeline**: Map out the emotional arc of the mashup, section by section. Describe each part with flair.
-- **layers**: Be a maestro. Which stem from which song? How loud? Any effects to add texture? The songId must be one of the IDs from the analysis.
+Key Directives:
+- **Use the Data**: Your decisions for target BPM, key, and arrangement must be justified by the provided analysis data.
+- **Emotional Arc**: The timeline must reflect the journey described in 'emotionalArc'.
+- **Problem Solving**: Identify at least one potential harmonic or rhythmic clash from the data and propose a specific, professional solution in 'problemsAndSolutions'.
+- **Genre Coherence**: The 'genre' should be a creative but logical fusion based on the source tracks.
+- **Quick Suggestions**: Provide 6 varied, creative, and actionable suggestions for how the user could iterate on this plan.
+- **Be Specific**: In the timeline layers, be precise about which stems to use and why.
 
 This is your canvas. Paint a masterpiece. Create a mashup that feels inevitable, like the songs were always meant to be together. The JSON is your score. Write it.
 `;

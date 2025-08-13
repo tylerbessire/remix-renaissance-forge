@@ -5,7 +5,8 @@ import json
 import requests
 import tempfile
 import traceback
-from flask import Flask, request, jsonify
+import sys
+import base64
 from threading import Thread
 import numpy as np
 
@@ -13,8 +14,6 @@ import numpy as np
 from .audio_ops import load_wav, save_wav, pitch_shift_semitones, stretch_to_grid_piecewise, apply_gain_db
 from .align import choose_target_key, plan_shifts
 from .transitions import s_curve_xfade, filter_sweep, echo_out, sidechain_duck
-
-app = Flask(__name__)
 
 SUPABASE_URL = os.environ.get("SUPABASE_URL")
 SUPABASE_KEY = os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
@@ -91,22 +90,25 @@ def render_mashup(plan, tracks_meta):
         master = master * (0.98 / peak)
     return master, sr
 
-def run_mashup_process(job_id, songs, app_context):
-    with app_context:
-        try:
-            supabase_client.table('mashup_jobs').update({'status': 'processing', 'details': 'Analyzing tracks...'}).eq('id', job_id).execute()
+def run_mashup_process(job_id, songs):
+    try:
+        supabase_client.table('mashup_jobs').update({'status': 'processing', 'details': 'Analyzing tracks...'}).eq('id', job_id).execute()
 
-            tracks_meta = {}
-            for song in songs:
+        tracks_meta = {}
+        for song in songs:
                 song_id = song['song_id']
                 storage_path = song['storage_path']
 
                 # Fetch the audio file from storage
                 audio_bytes = supabase_client.storage.from_('mashups').download(storage_path)
+                audio_base64 = base64.b64encode(audio_bytes).decode('utf-8')
 
                 # Get spectral analysis
-                analysis_payload = {'file': (song['name'], audio_bytes, 'audio/mpeg')}
-                analysis = invoke_function('spectral-analysis', analysis_payload, is_binary=True)
+                analysis_payload = {
+                    "audioData": audio_base64,
+                    "songId": song_id
+                }
+                analysis = invoke_function('spectral-analysis', analysis_payload, is_binary=False)
 
                 # Get stems
                 stems_payload = {'file': (song['name'], audio_bytes, 'audio/mpeg')}
@@ -155,28 +157,39 @@ def run_mashup_process(job_id, songs, app_context):
             traceback.print_exc()
             supabase_client.table('mashup_jobs').update({'status': 'failed', 'error_message': str(e)}).eq('id', job_id).execute()
 
+if __name__ == '__main__':
+    if len(sys.argv) < 2:
+        print(json.dumps({"error": "No input data file path provided"}), file=sys.stderr)
+        sys.exit(1)
 
-@app.route('/', methods=['POST'])
-def start_mashup_job():
+    input_filepath = sys.argv[1]
+
     try:
-        data = request.get_json()
+        with open(input_filepath, 'r') as f:
+            data = json.load(f)
+
         songs = data.get('songs')
         if not songs or len(songs) < 2:
-            return jsonify({"error": "At least two songs are required"}), 400
+            print(json.dumps({"error": "At least two songs are required"}), file=sys.stderr)
+            sys.exit(1)
 
+        # Create a job record in Supabase
         job_data = {'songs': songs}
-        response = supabase_client.table('mashup_jobs').insert([{'job_data': job_data}]).execute()
+        response = supabase_client.table('mashup_jobs').insert([{'job_data': job_data, 'status': 'starting'}]).execute()
         job_id = response.data[0]['id']
 
-        thread = Thread(target=run_mashup_process, args=(job_id, songs, app.app_context()))
-        thread.daemon = True
-        thread.start()
+        # Immediately return the job ID to the calling process
+        print(json.dumps({"success": True, "jobId": job_id}))
+        sys.stdout.flush()
 
-        return jsonify({"success": True, "jobId": job_id})
+        # Start the long-running process in a separate thread
+        # This allows the main script to exit while the work continues
+        thread = Thread(target=run_mashup_process, args=(job_id, songs))
+        thread.daemon = True # This allows the main thread to exit even if this thread is running
+        thread.start()
+        # The main thread will now exit, but the daemon thread will continue in the background
+        # in the context of the running Python interpreter process invoked by Deno.
 
     except Exception as e:
-        traceback.print_exc()
-        return jsonify({"error": "Failed to start mashup job", "details": str(e)}), 500
-
-if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 8080)))
+        print(json.dumps({"error": "Failed to start mashup job", "details": str(e)}), file=sys.stderr)
+        sys.exit(1)
