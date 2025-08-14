@@ -1,13 +1,27 @@
+
 import { corsHeaders } from '../_shared/cors.ts';
+
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
+
 
 interface SpectralAnalysisRequest {
   audioData: string; // base64 encoded audio
   songId: string;
 }
 
+
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
+
+Deno.serve(async (req) => {
+  // This is needed if you're planning to invoke your function from a browser.
+  if (req.method === 'OPTIONS') {
+    return new Response('ok', { headers: corsHeaders })
+
   }
 
   try {
@@ -19,6 +33,7 @@ Deno.serve(async (req: Request) => {
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
       );
     }
+
 
     console.log(`Starting spectral analysis for song: ${songId}`);
 
@@ -204,6 +219,30 @@ if __name__ == "__main__":
 
     console.log(`Analysis complete for song: ${songId}`);
 
+    const pythonApiUrl = Deno.env.get('PYTHON_API_URL');
+    if (!pythonApiUrl) {
+        throw new Error('PYTHON_API_URL environment variable is not set.');
+    }
+
+    console.log(`Forwarding spectral analysis for song ${songId} to Python API...`);
+
+    const response = await fetch(`${pythonApiUrl}/analyze`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ audioData }),
+    });
+
+    if (!response.ok) {
+        const errorBody = await response.text();
+        console.error(`Python API error: ${errorBody}`);
+        throw new Error(`Analysis failed: Python API returned status ${response.status}`);
+    }
+
+    const analysisResult = await response.json();
+
+
+    // The python API now returns the full analysis object.
+    // We can just forward this to the client.
     return new Response(
       JSON.stringify(analysisResult),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
