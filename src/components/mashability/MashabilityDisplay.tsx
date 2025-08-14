@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import type { MashabilityResult } from '@/types/mashability';
 
+
 interface MashabilityDisplayProps {
   mashabilityResult: MashabilityResult | null;
   onWeightsChange: (weights: any) => void;

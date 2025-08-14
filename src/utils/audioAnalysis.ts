@@ -32,6 +32,7 @@ function fileToBase64(file: File): Promise<string> {
   });
 }
 
+
 import { supabase } from '@/integrations/supabase/client';
 
 export async function analyzeFile(songId: string, file: File): Promise<AnalysisResult> {
@@ -48,6 +49,7 @@ export async function analyzeFile(songId: string, file: File): Promise<AnalysisR
     }
 
     return data.analysis as AnalysisResult;
+
   } catch (e) {
     console.error("File analysis failed:", e);
     throw e; // Re-throw to be handled by the calling hook
@@ -135,7 +137,9 @@ function calculateSpectralScore(a1: AnalysisResult, a2: AnalysisResult) {
     const reasons = [];
     const suggestions = [];
 
+
     const balanceDiff =
+
         Math.abs(a1.spectral_balance.low_freq_content - a2.spectral_balance.low_freq_content) +
         Math.abs(a1.spectral_balance.mid_freq_content - a2.spectral_balance.mid_freq_content) +
         Math.abs(a1.spectral_balance.high_freq_content - a2.spectral_balance.high_freq_content);
@@ -149,8 +153,10 @@ function calculateSpectralScore(a1: AnalysisResult, a2: AnalysisResult) {
     const brightnessScore = Math.max(0, 100 - brightnessDiff * 200);
     reasons.push(`Timbral brightness is ${brightnessScore < 80 ? 'somewhat different' : 'similar'}.`);
 
+
     const totalRoughness = a1.roughness.estimated_roughness + a2.roughness.estimated_roughness;
     const roughnessScore = Math.max(0, 100 - totalRoughness * 2);
+
 
     const score = balanceScore * 0.5 + brightnessScore * 0.3 + roughnessScore * 0.2;
     return { score, reasons, suggestions };
@@ -180,10 +186,12 @@ export function computeCompatibility(
   const energy = calculateEnergyScore(a1.energy, a2.energy);
 
   const totalScore =
+
     harmonic.score * weights.harmonic +
     rhythmic.score * weights.rhythmic +
     spectral.score * weights.spectral +
     energy.score * weights.energy;
+
 
   const reasons = [
     ...harmonic.reasons,
@@ -191,6 +199,7 @@ export function computeCompatibility(
     ...spectral.reasons,
     ...energy.reasons,
   ];
+
 
   const suggestions = [
     ...harmonic.suggestions,
