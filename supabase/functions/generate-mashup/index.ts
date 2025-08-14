@@ -28,56 +28,60 @@ Deno.serve(async (req) => {
       );
     }
 
+    // Get Python API URL - this is required, no fallbacks
     const pythonApiUrl = Deno.env.get('PYTHON_API_URL');
     if (!pythonApiUrl) {
-      console.warn('PYTHON_API_URL not set, returning fallback response');
-      return new Response(
-        JSON.stringify({ 
-          success: true,
-          jobId: `fallback-${Date.now()}`,
-          message: 'Mashup generation started (fallback mode)',
-          status: 'processing'
-        }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      throw new Error('PYTHON_API_URL environment variable is not configured. External Python API is required for mashup generation.');
     }
 
-    console.log(`Forwarding mashup generation request to Python API...`);
+    console.log(`Forwarding mashup generation request to Python API: ${pythonApiUrl}`);
 
-    const response = await fetch(`${pythonApiUrl}/generate-mashup`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ songs }),
-    });
+    // Forward to external Python API with retry logic
+    let lastError;
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      try {
+        const response = await fetch(`${pythonApiUrl}/generate-mashup`, {
+          method: 'POST',
+          headers: { 
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          },
+          body: JSON.stringify({ songs }),
+          signal: AbortSignal.timeout(120000) // 2 minute timeout for mashup generation
+        });
 
-    if (!response.ok) {
-        const errorBody = await response.text();
-        console.error(`Python API error: ${errorBody}`);
-        throw new Error(`Failed to start mashup job: Python API returned status ${response.status}`);
+        if (!response.ok) {
+          const errorBody = await response.text();
+          throw new Error(`Python API returned status ${response.status}: ${errorBody}`);
+        }
+
+        const jobResult = await response.json();
+        
+        // Validate response structure
+        if (!jobResult.success || !jobResult.jobId) {
+          throw new Error('Invalid response from Python API - missing success flag or jobId');
+        }
+
+        console.log(`Mashup generation job started: ${jobResult.jobId} on attempt ${attempt}`);
+
+        return new Response(
+          JSON.stringify(jobResult),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+
+      } catch (error) {
+        lastError = error;
+        console.warn(`Mashup generation attempt ${attempt} failed:`, error.message);
+        
+        if (attempt < 3) {
+          // Wait before retry (exponential backoff)
+          await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt) * 1000));
+        }
+      }
     }
 
-    const jobResult = await response.json();
-    console.log('Python API response:', jobResult);
-
-    // The python API should return { success: true, jobId: "..." }
-    // If no jobId is returned, fall back to creating a placeholder job
-    if (!jobResult.jobId) {
-      console.warn('No jobId returned from Python API, creating fallback response');
-      return new Response(
-        JSON.stringify({ 
-          success: true,
-          jobId: `fallback-${Date.now()}`,
-          message: 'Mashup generation started (fallback mode)',
-          status: 'processing'
-        }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    return new Response(
-      JSON.stringify(jobResult),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+    // All attempts failed
+    throw new Error(`Failed to start mashup generation after 3 attempts. Last error: ${lastError.message}`);
 
   } catch (error) {
     console.error('Error in generate-mashup function:', error);
