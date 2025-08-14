@@ -1,228 +1,95 @@
-import { useState } from "react";
-import { SongColumn } from "@/components/SongColumn";
-import { MashupZone } from "@/components/MashupZone";
-import { Button } from "@/components/ui/button";
-import { Settings, Zap } from "lucide-react";
-import { toast } from "sonner";
-import { Link } from "react-router-dom";
-import { YouTubeSearch } from "@/components/YouTubeSearch";
-import { supabase } from "@/integrations/supabase/client";
-import { type YouTubeSearchResult } from "@/components/YouTubeSearch";
-import { SongLibrary } from "@/components/SongLibrary";
+import React, { useState, useEffect } from 'react';
+import { useAudioAnalysis } from '@/hooks/useAudioAnalysis';
+import { useMashabilityScoring } from '@/hooks/useMashabilityScoring';
+import { useMashupOrchestrator } from '@/hooks/useMashupOrchestrator';
+import { MashabilityDisplay } from '@/components/mashability/MashabilityDisplay';
+import { Button } from '@/components/ui/button';
 
-// This interface is now updated to support both file uploads and YouTube downloads
-interface Song {
-  id: string;
-  name:string;
-  artist: string;
-  file?: File;
-  storage_path?: string;
-}
-
-interface Column {
-  id: string;
-  title: string;
-  songs: Song[];
-}
-
-const Index = () => {
-  const [columns, setColumns] = useState<Column[]>([
-    { id: "1", title: "Vibe Check", songs: [] },
-    { id: "2", title: "Bangers", songs: [] },
-    { id: "3", title: "Chill Zone", songs: [] },
-  ]);
-  
-  const [songLibrary, setSongLibrary] = useState<Song[]>([]);
-  const [selectedSongs, setSelectedSongs] = useState<Song[]>([]);
-  
-  const [fileRegistry, setFileRegistry] = useState<Map<string, File>>(new Map());
-
-  const updateColumnSongs = (columnId: string, songs: Song[]) => {
-    setFileRegistry(prev => {
-      const newRegistry = new Map(prev);
-      songs.forEach(song => {
-        if (song.file instanceof File) {
-          newRegistry.set(song.id, song.file);
-        }
-      });
-      return newRegistry;
-    });
-    
-    setColumns(prev => prev.map(col => 
-      col.id === columnId ? { ...col, songs } : col
-    ));
-  };
-
-  const addToMashup = (song: Song) => {
-    if (selectedSongs.length >= 3) {
-      toast.error("Max 3 tracks in the mashup zone!");
-      return;
-    }
-    
-    if (selectedSongs.find(s => s.id === song.id)) {
-      toast.error("Track already in mashup zone!");
-      return;
-    }
-
-    setSelectedSongs(prev => [...prev, song]);
-    toast.success(`Added "${song.name}" to mashup zone`);
-  };
-
-  const removeFromMashup = (songId: string) => {
-    setSelectedSongs(prev => prev.filter(s => s.id !== songId));
-  };
-
-  const clearMashup = () => {
-    setSelectedSongs([]);
-    toast.success("Mashup zone cleared");
-  };
-
-  const handleMashupDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    const songData = e.dataTransfer.getData('application/json');
-    if (songData) {
-      const songMetadata = JSON.parse(songData);
-      
-      const file = fileRegistry.get(songMetadata.id);
-      if (file) {
-        const song: Song = { ...songMetadata, file };
-        addToMashup(song);
-      } else {
-        const originalSong = [...columns.flatMap(c => c.songs), ...songLibrary].find(s => s.id === songMetadata.id);
-        if (originalSong) {
-          addToMashup(originalSong);
-        } else {
-          toast.error("Could not find this track.");
-        }
-      }
-    }
-  };
-
-  const handleSongDragStart = (e: React.DragEvent, song: Song) => {
-    e.dataTransfer.setData('application/json', JSON.stringify(song));
-  };
-
-  const handleYouTubeSongSelected = async (ytSong: YouTubeSearchResult) => {
-    toast.info(`Downloading "${ytSong.title}"...`);
-
-    try {
-      const { data, error } = await supabase.functions.invoke<{ success: boolean, storage_path: string, details?: string }>('youtube-download', {
-        body: { url: ytSong.url, title: ytSong.title },
-      });
-
-      if (error || !data?.success || !data.storage_path) {
-        console.error('Download error:', error);
-        console.error('Download data:', data);
-        throw new Error(error?.message || data?.details || 'Download failed on the backend.');
-      }
-
-      const newSong: Song = {
-        id: ytSong.id,
-        name: ytSong.title,
-        artist: 'YouTube',
-        storage_path: data.storage_path,
-      };
-
-      setSongLibrary(prev => [...prev, newSong]);
-      toast.success(`"${ytSong.title}" added to your library!`);
-
-    } catch (e: any) {
-      toast.error(`Failed to add song: ${e.message}`);
-    }
-  };
-
-  return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="bg-background/80 backdrop-blur-sm sticky top-0 z-50 border-b">
-        <div className="container mx-auto px-6 py-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <h1 className="text-2xl font-bold text-primary">
-                Syncrasis
-              </h1>
-              <div className="hidden md:flex items-center gap-2 px-3 py-1 rounded-full bg-secondary">
-                <Zap className="h-4 w-4 text-accent" />
-                <span className="text-xs font-medium">AI Music Remix Studio</span>
-              </div>
-            </div>
-            
-            <div className="flex items-center gap-4">
-              <SongLibrary songs={songLibrary} onSongDragStart={handleSongDragStart} />
-              <Link to="/auth">
-                <Button size="sm" variant="secondary">Account</Button>
-              </Link>
-              <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-primary">
-                <Settings className="h-5 w-5" />
-              </Button>
-            </div>
-          </div>
+const SongUploader: React.FC<{ songNumber: 1 | 2, onFileUpload: (file: File) => void, analysis: any | null, isAnalyzing: boolean }> = 
+({ songNumber, onFileUpload, analysis, isAnalyzing }) => {
+    return (
+        <div className="border-2 border-dashed border-gray-300 rounded-lg p-6">
+            <h3 className="text-lg font-semibold mb-4">Song {songNumber}</h3>
+            <input type="file" accept="audio/*" onChange={(e) => e.target.files?.[0] && onFileUpload(e.target.files[0])} className="w-full" disabled={isAnalyzing} />
+            {isAnalyzing && <div className="mt-2 text-blue-500">Analyzing...</div>}
+            {analysis && <div className="mt-2 text-green-600">✅ Analysis Complete!</div>}
         </div>
-      </header>
-
-      {/* Main Content */}
-      <main className="container mx-auto px-6 py-8">
-        <div className="mb-8">
-          <YouTubeSearch onSongSelected={handleYouTubeSongSelected} />
-        </div>
-        <div className="grid grid-cols-1 xl:grid-cols-4 gap-8">
-          {/* Song Columns */}
-          <div className="xl:col-span-3 grid grid-cols-1 md:grid-cols-3 gap-6">
-            {columns.map((column) => (
-              <SongColumn
-                key={column.id}
-                title={column.title}
-                songs={column.songs}
-                onSongsChange={(songs) => updateColumnSongs(column.id, songs)}
-                onDragStart={handleSongDragStart}
-              />
-            ))}
-          </div>
-
-          {/* Mashup Zone */}
-          <div className="xl:col-span-1">
-            <div
-              onDrop={handleMashupDrop}
-              onDragOver={(e) => e.preventDefault()}
-              className="sticky top-24"
-            >
-              <MashupZone
-                selectedSongs={selectedSongs}
-                onRemoveSong={removeFromMashup}
-                onClearAll={clearMashup}
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* Instructions */}
-        <div className="mt-16 text-center max-w-4xl mx-auto">
-          <div className="bg-card rounded-xl p-8 border">
-            <h3 className="text-2xl font-bold text-primary mb-4">
-              How It Works
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-              <div className="space-y-3">
-                <div className="w-12 h-12 bg-primary/20 border-2 border-primary rounded-full flex items-center justify-center mx-auto text-xl font-bold text-primary">1</div>
-                <div className="font-bold text-lg">Upload / Search</div>
-                <p className="text-muted-foreground text-sm">Use the search bar to find songs on YouTube, or drop your own tracks into the columns.</p>
-              </div>
-              <div className="space-y-3">
-                <div className="w-12 h-12 bg-primary/20 border-2 border-primary rounded-full flex items-center justify-center mx-auto text-xl font-bold text-primary">2</div>
-                <div className="font-bold text-lg">Mix</div>
-                <p className="text-muted-foreground text-sm">Drag 2-3 songs into the mashup zone to create something new.</p>
-              </div>
-              <div className="space-y-3">
-                <div className="w-12 h-12 bg-primary/20 border-2 border-primary rounded-full flex items-center justify-center mx-auto text-xl font-bold text-primary">3</div>
-                <div className="font-bold text-lg">Generate</div>
-                <p className="text-muted-foreground text-sm">Let AI work its magic and create your unique remix.</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </main>
-    </div>
-  );
+    );
 };
 
-export default Index;
+export const MashupStudio: React.FC = () => {
+    const [song1, setSong1] = useState<{ id: string, file: File | null }>({ id: 'song1', file: null });
+    const [song2, setSong2] = useState<{ id: string, file: File | null }>({ id: 'song2', file: null });
+
+    const { analyzedSongs, analyzeSong, isAnalyzing } = useAudioAnalysis();
+    const { score, calculateMashability, isCalculating: isScoring } = useMashabilityScoring();
+    const orchestrator = useMashupOrchestrator();
+
+    const song1Analysis = analyzedSongs.get('song1') || null;
+    const song2Analysis = analyzedSongs.get('song2') || null;
+
+    const handleFileUpload = (file: File, songNumber: 1 | 2) => {
+        if (songNumber === 1) setSong1({ id: 'song1', file });
+        else setSong2({ id: 'song2', file });
+        analyzeSong({ id: `song${songNumber}`, file });
+    };
+
+    useEffect(() => {
+        if (song1Analysis && song2Analysis) {
+            calculateMashability(song1Analysis, song2Analysis);
+        }
+    }, [song1Analysis, song2Analysis, calculateMashability]);
+    
+    const handleWeightsChange = (weights: any) => {
+        if (song1Analysis && song2Analysis) {
+            calculateMashability(song1Analysis, song2Analysis, weights);
+        }
+    };
+
+    const handleCreateMasterplan = () => {
+        if (song1Analysis && song2Analysis && score) {
+            orchestrator.createMasterplan(song1Analysis, song2Analysis, score);
+        }
+    };
+    
+    const handleExecuteMasterplan = () => {
+        if (song1 && song2) {
+            orchestrator.executeMasterplan([song1, song2], "job" + Date.now());
+        }
+    };
+
+    return (
+        <div className="max-w-4xl mx-auto p-6 space-y-8">
+            <h1 className="text-4xl font-bold text-center tracking-tighter">Kill_mR_DJ: Mashup Studio</h1>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <SongUploader songNumber={1} onFileUpload={(f) => handleFileUpload(f, 1)} analysis={song1Analysis} isAnalyzing={isAnalyzing} />
+                <SongUploader songNumber={2} onFileUpload={(f) => handleFileUpload(f, 2)} analysis={song2Analysis} isAnalyzing={isAnalyzing} />
+            </div>
+            {(isAnalyzing || isScoring) && <div className="text-center p-4">Loading...</div>}
+            <MashabilityDisplay mashabilityResult={score} onWeightsChange={handleWeightsChange} />
+            {score && !orchestrator.masterplan && (
+                <div className="text-center">
+                    <Button onClick={handleCreateMasterplan} disabled={orchestrator.isCreating}>
+                        {orchestrator.isCreating ? 'AI is Generating Masterplan...' : 'Create AI Masterplan'}
+                    </Button>
+                </div>
+            )}
+            {orchestrator.masterplan && (
+                <div className="p-6 bg-gray-900 text-white rounded-lg space-y-4">
+                    <h3 className="text-2xl font-bold">Creative Vision:</h3>
+                    <p className="text-gray-300 italic">"{orchestrator.creativeVision}"</p>
+                    <pre className="bg-black p-4 rounded-md overflow-x-auto text-sm">{JSON.stringify(orchestrator.masterplan, null, 2)}</pre>
+                    <div className="text-center pt-4">
+                        <Button onClick={handleExecuteMasterplan} disabled={orchestrator.isExecuting} variant="destructive">
+                            {orchestrator.isExecuting ? `Executing... ${orchestrator.executionProgress}%` : 'Execute & Render Audio'}
+                        </Button>
+                    </div>
+                </div>
+            )}
+            {orchestrator.isExecuting && <div className="p-4 bg-blue-900 text-white rounded-lg"><p>Progress: {orchestrator.executionProgress}%</p><p>{orchestrator.executionMessage}</p></div>}
+            {orchestrator.finalAudioUrl && <div className="p-6 bg-green-900 text-white rounded-lg text-center"><h3 className="text-2xl font-bold">Mashup Complete!</h3><audio controls src={orchestrator.finalAudioUrl} className="w-full" /></div>}
+        </div>
+    );
+};
+
+export default MashupStudio;
