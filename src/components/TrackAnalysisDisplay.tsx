@@ -1,27 +1,22 @@
 import { Card } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import type { TrackFeatures } from '@/utils/audioAnalysis';
+import type { AnalysisResult } from '@/utils/audioAnalysis';
 import { Zap, KeyRound, Activity, Sun } from 'lucide-react';
 
-export function TrackAnalysisDisplay({ features }: { features: TrackFeatures }) {
+export function TrackAnalysisDisplay({ features }: { features: AnalysisResult }) {
   return (
     <Card className="p-4 space-y-3 bg-secondary/50">
       <div className="flex justify-between items-center">
         <h4 className="text-sm font-semibold">Track Analysis</h4>
-        {features.mood && (
-          <span className="text-xs px-2 py-1 bg-primary/20 text-primary rounded-full">
-            {features.mood}
-          </span>
-        )}
       </div>
       <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-xs">
         <div className="flex items-center gap-2">
           <Zap className="h-4 w-4 text-muted-foreground" />
-          <span>Tempo: {features.tempo} BPM</span>
+          <span>Tempo: {Math.round(features.beat_grid.bpm)} BPM</span>
         </div>
         <div className="flex items-center gap-2">
           <KeyRound className="h-4 w-4 text-muted-foreground" />
-          <span>Key: {features.key}</span>
+          <span>Key: {features.key.name} ({features.key.camelot})</span>
         </div>
       </div>
       <div className="space-y-1 pt-2 border-t border-border">

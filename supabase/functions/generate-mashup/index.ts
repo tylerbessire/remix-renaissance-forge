@@ -13,7 +13,10 @@ interface MashupRequest {
 }
 
 Deno.serve(async (req) => {
+
+=======
   // This is needed if you're planning to invoke your function from a browser.
+
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
   }
@@ -27,6 +30,17 @@ Deno.serve(async (req) => {
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
       );
     }
+
+
+    // TODO: Implement actual mashup generation logic
+    // For now, return a success response with placeholder data
+    return new Response(
+      JSON.stringify({ 
+        success: true,
+        message: 'Mashup generation started',
+        songs: songs.map(song => song.name).join(' vs '),
+        status: 'processing'
+      }),
 
     const pythonApiUrl = Deno.env.get('PYTHON_API_URL');
     if (!pythonApiUrl) {
@@ -53,15 +67,22 @@ Deno.serve(async (req) => {
     // We can just forward this to the client.
     return new Response(
       JSON.stringify(jobResult),
+
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
   } catch (error) {
     console.error('Error in generate-mashup function:', error);
     return new Response(
+
+      JSON.stringify({ 
+        error: 'Failed to start mashup generation job', 
+        details: error.message 
+
       JSON.stringify({
         error: 'Failed to start mashup generation job',
         details: error.message
+
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
     );
