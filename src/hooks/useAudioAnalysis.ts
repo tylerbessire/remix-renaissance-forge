@@ -28,7 +28,7 @@ export function useAudioAnalysis() {
     toast.info(`Analyzing song...`);
 
     try {
-      const result = await analyzeFile(song.file);
+      const result = await analyzeFile(song.id, song.file);
       setAnalyzedSongs(prev => new Map(prev).set(song.id, result));
       toast.success(`Analysis complete!`);
       return result;
