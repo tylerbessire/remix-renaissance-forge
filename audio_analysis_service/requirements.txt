@@ -1,0 +1,9 @@
+# Web Server
+fastapi
+uvicorn
+
+# Audio & Data
+librosa
+numpy
+scipy
+pydantic
