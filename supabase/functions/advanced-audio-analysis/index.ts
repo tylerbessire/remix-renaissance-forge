@@ -3,13 +3,9 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-interface MashupRequest {
-  songs: Array<{
-    song_id: string;
-    name: string;
-    artist: string;
-    storage_path: string;
-  }>;
+interface SpectralAnalysisRequest {
+  audioData: string; // base64 encoded audio
+  songId: string;
 }
 
 Deno.serve(async (req) => {
@@ -19,48 +15,46 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { songs }: MashupRequest = await req.json();
+    const { audioData, songId }: SpectralAnalysisRequest = await req.json();
 
-    if (!songs || songs.length < 2) {
+    if (!audioData || !songId) {
       return new Response(
-        JSON.stringify({ error: 'Please provide at least 2 songs' }),
+        JSON.stringify({ error: 'Audio data and song ID are required' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
       );
     }
 
-    const pythonApiUrl = Deno.env.get('PYTHON_API_URL');
+    const pythonApiUrl = Deno.env.get('ANALYSIS_API_URL');
     if (!pythonApiUrl) {
-        throw new Error('PYTHON_API_URL environment variable is not set.');
+        throw new Error('ANALYSIS_API_URL environment variable is not set.');
     }
 
-    console.log(`Forwarding mashup generation request to Python API...`);
+    console.log(`Forwarding spectral analysis for song ${songId} to Python API...`);
 
-    const response = await fetch(`${pythonApiUrl}/generate-mashup`, {
+    const response = await fetch(`${pythonApiUrl}/analyze`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ songs }),
+        body: JSON.stringify({ audioData, songId }), // Pass songId as well
     });
 
     if (!response.ok) {
         const errorBody = await response.text();
         console.error(`Python API error: ${errorBody}`);
-        throw new Error(`Failed to start mashup job: Python API returned status ${response.status}`);
+        throw new Error(`Analysis failed: Python API returned status ${response.status}`);
     }
 
-    const jobResult = await response.json();
+    const analysisResult = await response.json();
 
-    // The python API now returns the { success: true, jobId: "..." } object.
-    // We can just forward this to the client.
     return new Response(
-      JSON.stringify(jobResult),
+      JSON.stringify(analysisResult),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
   } catch (error) {
-    console.error('Error in generate-mashup function:', error);
+    console.error('Error in advanced-audio-analysis function:', error);
     return new Response(
       JSON.stringify({
-        error: 'Failed to start mashup generation job',
+        error: 'Failed to process spectral analysis',
         details: error.message
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }

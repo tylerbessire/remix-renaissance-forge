@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 import { analyzeFile, computeCompatibility } from '@/utils/audioAnalysis';
-import type { AnalysisResult, CompatibilityWeights } from '@/utils/audioAnalysis';
+import type { AnalysisResult } from '@/utils/audioAnalysis';
 import { toast } from 'sonner';
 
 interface Song {
@@ -20,21 +20,20 @@ export function useAudioAnalysis() {
     }
 
     if (!song.file) {
-      toast.error(`Cannot analyze "${song.id}" without a file.`);
+      toast.error("Cannot analyze a song without a file.");
       return null;
     }
 
     setIsAnalyzing(true);
-    toast.info(`Analyzing ${song.id}...`);
+    toast.info(`Analyzing song...`);
 
     try {
       const result = await analyzeFile(song.id, song.file);
       setAnalyzedSongs(prev => new Map(prev).set(song.id, result));
-      toast.success(`Analysis complete for ${song.id}!`);
+      toast.success(`Analysis complete!`);
       return result;
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "Unknown error";
-      toast.error(`Analysis failed for ${song.id}: ${errorMessage}`);
+      toast.error("Analysis failed.");
       console.error(error);
       return null;
     } finally {
@@ -42,20 +41,14 @@ export function useAudioAnalysis() {
     }
   }, [analyzedSongs]);
 
-  const analyzeMashupCompatibility = useCallback(async (songs: Song[], weights?: CompatibilityWeights) => {
+  const analyzeMashupCompatibility = useCallback(async (songs: Song[]) => {
     const analyses: AnalysisResult[] = [];
     for (const song of songs) {
-      // Use cached analysis if available, otherwise analyze on the fly
-      let analysis = analyzedSongs.get(song.id);
-      if (!analysis) {
-        analysis = await analyzeSong(song);
-      }
-      
+      const analysis = await analyzeSong(song);
       if (analysis) {
         analyses.push(analysis);
       } else {
         // If any song fails analysis, we can't determine compatibility.
-        toast.error("Compatibility check failed because one or more songs could not be analyzed.");
         return { score: 0, reasons: ["Analysis failed for one or more songs."], suggestions: [] };
       }
     }
@@ -64,10 +57,10 @@ export function useAudioAnalysis() {
       return { score: 0, reasons: ["Need at least 2 analyzed songs."], suggestions: [] };
     }
 
-    const compatibility = computeCompatibility(analyses, weights);
+    const compatibility = await computeCompatibility(analyses);
     toast.success(`Mashup compatibility: ${compatibility.score}%`);
     return compatibility;
-  }, [analyzedSongs, analyzeSong]);
+  }, [analyzeSong]);
 
   const getAnalysis = useCallback((songId: string): AnalysisResult | undefined => {
     return analyzedSongs.get(songId);
@@ -77,7 +70,6 @@ export function useAudioAnalysis() {
     isAnalyzing,
     analyzeSong,
     getAnalysis,
-    analyzedSongs,
     analyzeMashupCompatibility
   };
 }

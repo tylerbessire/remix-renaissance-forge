@@ -1,3 +1,5 @@
+// src/utils/audioAnalysis.ts
+
 // --- Interfaces ---
 export interface AnalysisResult {
   version: string;
@@ -10,13 +12,6 @@ export interface AnalysisResult {
   spectral_balance: { low_freq_content: number; mid_freq_content: number; high_freq_content: number; };
   roughness: { estimated_roughness: number; };
   diagnostics: { warnings: any[]; };
-}
-
-export interface CompatibilityWeights {
-  harmonic: number;
-  rhythmic: number;
-  spectral: number;
-  energy: number;
 }
 
 // --- API Communication ---
@@ -40,37 +35,44 @@ function fileToBase64(file: File): Promise<string> {
 export async function analyzeFile(songId: string, file: File): Promise<AnalysisResult> {
   try {
     const audioData = await fileToBase64(file);
-
-    const response = await fetch('https://jndnvpevsgpapntxaaeq.supabase.co/functions/v1/spectral-analysis', {
+    const res = await fetch('/api/spectral-analysis', {
       method: 'POST',
-      headers: { 
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpuZG52cGV2c2dwYXBudHhhYWVxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM4MzkzNDUsImV4cCI6MjA2OTQxNTM0NX0.UN_zIz4Te0bT-8f619OF1oHaz1zlqE4EMTfjOTE_IzI`
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ songId, audioData }),
     });
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`Analysis API Error (${response.status}): ${errorText}`);
+    if (!res.ok) {
+      const errorBody = await res.text();
+      throw new Error(`Analysis API Error (${res.status}): ${errorBody}`);
     }
 
-    const data = await response.json();
-    return data as AnalysisResult;
+    const data = await res.json();
+    if (!data.success || !data.analysis?.spectralFeatures) {
+      throw new Error('Analysis response is missing expected data.');
+    }
+
+    return data.analysis.spectralFeatures as AnalysisResult;
   } catch (e) {
     console.error("File analysis failed:", e);
-    throw e;
+    throw e; // Re-throw to be handled by the calling hook
   }
 }
 
 // --- Compatibility Scoring Logic ---
 
-const DEFAULT_WEIGHTS: CompatibilityWeights = {
+const DEFAULT_WEIGHTS = {
   harmonic: 0.4,
   rhythmic: 0.3,
   spectral: 0.2,
   energy: 0.1,
 };
+
+export interface CompatibilityWeights {
+  harmonic: number;
+  rhythmic: number;
+  spectral: number;
+  energy: number;
+}
 
 const CAMELOT_WHEEL: { [key: string]: number } = {
   '1A': 1, '1B': 1, '2A': 2, '2B': 2, '3A': 3, '3B': 3, '4A': 4, '4B': 4,
@@ -120,7 +122,7 @@ function calculateRhythmicScore(a1: AnalysisResult, a2: AnalysisResult) {
   const bpmScore = Math.max(0, 100 - bpmDiff * 5 - Math.pow(bpmDiff, 2) * 0.1);
   reasons.push(`Tempo difference is ${bpmDiff.toFixed(1)} BPM.`);
   if (bpmDiff > 10) {
-    suggestions.push(`The tempo difference is large. Consider extensive time-stretching or a transition section.`);
+      suggestions.push(`The tempo difference is large. Consider extensive time-stretching or a transition section.`);
   }
 
   const clarityScore = ((a1.rhythm.pulse_clarity + a2.rhythm.pulse_clarity) / 2) * 100;
@@ -134,59 +136,52 @@ function calculateRhythmicScore(a1: AnalysisResult, a2: AnalysisResult) {
 }
 
 function calculateSpectralScore(a1: AnalysisResult, a2: AnalysisResult) {
-  const reasons = [];
-  const suggestions = [];
+    const reasons = [];
+    const suggestions = [];
 
-  const balanceDiff =
-    Math.abs(a1.spectral_balance.low_freq_content - a2.spectral_balance.low_freq_content) +
-    Math.abs(a1.spectral_balance.mid_freq_content - a2.spectral_balance.mid_freq_content) +
-    Math.abs(a1.spectral_balance.high_freq_content - a2.spectral_balance.high_freq_content);
-  const balanceScore = Math.max(0, 100 - balanceDiff * 50);
-  reasons.push(`Spectral balance similarity is ${balanceScore.toFixed(0)}%.`);
-  if (balanceScore < 70) {
-    suggestions.push("Songs have very different frequency content; careful EQing will be required to avoid a muddy mix.");
-  }
+    const balanceDiff =
+        Math.abs(a1.spectral_balance.low_freq_content - a2.spectral_balance.low_freq_content) +
+        Math.abs(a1.spectral_balance.mid_freq_content - a2.spectral_balance.mid_freq_content) +
+        Math.abs(a1.spectral_balance.high_freq_content - a2.spectral_balance.high_freq_content);
+    const balanceScore = Math.max(0, 100 - balanceDiff * 50);
+    reasons.push(`Spectral balance similarity is ${balanceScore.toFixed(0)}%.`);
+    if (balanceScore < 70) {
+        suggestions.push("Songs have very different frequency content; careful EQing will be required to avoid a muddy mix.");
+    }
 
-  const brightnessDiff = Math.abs(a1.brightness - a2.brightness);
-  const brightnessScore = Math.max(0, 100 - brightnessDiff * 200);
-  reasons.push(`Timbral brightness is ${brightnessScore < 80 ? 'somewhat different' : 'similar'}.`);
+    const brightnessDiff = Math.abs(a1.brightness - a2.brightness);
+    const brightnessScore = Math.max(0, 100 - brightnessDiff * 200);
+    reasons.push(`Timbral brightness is ${brightnessScore < 80 ? 'somewhat different' : 'similar'}.`);
 
-  const totalRoughness = a1.roughness.estimated_roughness + a2.roughness.estimated_roughness;
-  const roughnessScore = Math.max(0, 100 - totalRoughness * 2);
+    const totalRoughness = a1.roughness.estimated_roughness + a2.roughness.estimated_roughness;
+    const roughnessScore = Math.max(0, 100 - totalRoughness * 2);
 
-  const score = balanceScore * 0.5 + brightnessScore * 0.3 + roughnessScore * 0.2;
-  return { score, reasons, suggestions };
+    const score = balanceScore * 0.5 + brightnessScore * 0.3 + roughnessScore * 0.2;
+    return { score, reasons, suggestions };
 }
 
-function calculateEnergyScore(a1: AnalysisResult, a2: AnalysisResult) {
-  const reasons = [];
-  const suggestions = [];
-
-  const energyDiff = Math.abs(a1.energy - a2.energy);
-  const score = Math.max(0, 100 - energyDiff * 150);
-  reasons.push(`Energy levels are ${energyDiff < 0.2 ? 'very similar' : energyDiff < 0.4 ? 'moderately different' : 'very different'}.`);
-  
-  if (energyDiff > 0.4) {
-    suggestions.push("Bridge different energy levels with build-ups or breakdowns.");
-  }
-  
-  return { score, reasons, suggestions };
+function calculateEnergyScore(energy1: number, energy2: number) {
+    const diff = Math.abs(energy1 - energy2);
+    const score = Math.max(0, 100 - diff * 150);
+    const reasons = [`Energy levels are ${diff < 0.2 ? 'very similar' : diff < 0.4 ? 'moderately different' : 'very different'}.`];
+    const suggestions = diff > 0.4 ? ["Bridge different energy levels with build-ups or breakdowns."] : [];
+    return { score, reasons, suggestions };
 }
+
 
 export function computeCompatibility(
   analyses: AnalysisResult[],
   weights: CompatibilityWeights = DEFAULT_WEIGHTS
 ) {
   if (analyses.length < 2) {
-    return { score: 0, reasons: ["Need at least 2 songs for compatibility analysis."], suggestions: [] };
+    return { score: 0, reasons: ["Need at least 2 songs"], suggestions: [] };
   }
-
   const [a1, a2] = analyses;
 
   const harmonic = calculateHarmonicScore(a1.key, a2.key);
   const rhythmic = calculateRhythmicScore(a1, a2);
   const spectral = calculateSpectralScore(a1, a2);
-  const energy = calculateEnergyScore(a1, a2);
+  const energy = calculateEnergyScore(a1.energy, a2.energy);
 
   const totalScore =
     harmonic.score * weights.harmonic +
