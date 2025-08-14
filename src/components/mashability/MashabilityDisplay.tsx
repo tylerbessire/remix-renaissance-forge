@@ -1,19 +1,7 @@
 import React, { useState } from 'react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
+import type { MashabilityResult } from '@/types/mashability';
 
-// A placeholder for the detailed score object, to be refined
-interface MashabilityResult {
-  overall_score: number;
-  dimension_scores: {
-    harmonic: number;
-    rhythmic: number;
-    spectral: number;
-    vocal: number;
-  };
-  compatibility_breakdown: any;
-  recommendations: string[];
-  warnings: string[];
-}
 
 interface MashabilityDisplayProps {
   mashabilityResult: MashabilityResult | null;

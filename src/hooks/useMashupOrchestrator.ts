@@ -61,13 +61,27 @@ export const useMashupOrchestrator = () => {
     setFinalAudioUrl(null);
 
     try {
-      const response = await fetch('/api/execute-masterplan', { // Assumes a proxy is set up in the web framework
+
+      // For streaming responses, we must use `fetch` directly, not supabase.functions.invoke
+      // We need to construct the full URL and add the Authorization header manually.
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const accessToken = (await supabase.auth.getSession()).data.session?.access_token;
+
+      if (!supabaseUrl || !accessToken) {
+        throw new Error("Supabase client not configured correctly. Make sure VITE_SUPABASE_URL is set in your .env file.");
+      }
+
+      const response = await fetch(`${supabaseUrl}/functions/v1/execute-masterplan`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${accessToken}`
+        },
         body: JSON.stringify({ masterplan, songs, job_id: jobId })
       });
 
-      if (!response.ok) throw new Error('Execution failed to start');
+      if (!response.ok) throw new Error(`Execution failed to start: ${response.statusText}`);
+
       if (!response.body) throw new Error('No response body from execution service');
 
       const reader = response.body.getReader();

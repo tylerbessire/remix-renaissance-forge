@@ -1,73 +1,49 @@
-# Welcome to your Lovable project
+# Tyler's Infinite Remixer
 
-## Project info
+An AI-powered mashup generation studio, built with the help of Lovable.dev.
 
-**URL**: https://lovable.dev/projects/223c3af8-9855-46c7-96dc-f0600de92406
+**Project URL**: https://lovable.dev/projects/223c3af8-9855-46c7-96dc-f0600de92406
 
-## How can I edit this code?
+## Development Setup (The "Clone and Go" Experience)
 
-There are several ways of editing your application.
+This project uses a microservice architecture for its Python backend. The following setup uses `concurrently` and `localtunnel` to make local development as simple as possible.
 
-**Use Lovable**
+### 1. One-Time Setup
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/223c3af8-9855-46c7-96dc-f0600de92406) and start prompting.
+First, ensure you have Node.js, npm, and Python installed. Then, clone the repository and run the setup script:
 
-Changes made via Lovable will be committed automatically to this repo.
+```bash
+git clone <your-repo-url>
+cd <your-repo-name>
+npm run setup
+```
+This will install all Node.js dependencies and all Python dependencies from the root `requirements.txt` file.
 
-**Use your preferred IDE**
+### 2. Running the Development Environment
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+To start the full stack (Vite frontend, all Python API servers, and the tunnels), simply run:
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
-
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
+```bash
+npm run dev:complete
 ```
 
-**Edit a file directly in GitHub**
+That's it! 🚀 This single command will:
+- ✅ Start 4 Python API servers for analysis, processing, scoring, and orchestration.
+- ✅ Create 4 consistent tunnel URLs with `localtunnel`.
+- ✅ Start the Vite dev server for the frontend.
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+### 3. Supabase Environment Variables
 
-**Use GitHub Codespaces**
+This project requires several environment variables to be set in your Supabase project to connect the Deno functions to the Python API services.
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+Go to your **Supabase Dashboard → Project Settings → Environment Variables** and add the following. Thanks to `localtunnel`, these URLs are consistent and do not need to be changed between development sessions.
 
-## What technologies are used for this project?
+```
+ANALYSIS_API_URL=https://tylers-remixer-analysis.loca.lt
+PROCESSING_API_URL=https://tylers-remixer-processing.loca.lt
+SCORING_API_URL=https://tylers-remixer-scoring.loca.lt
+ORCHESTRATOR_API_URL=https://tylers-remixer-orchestrator.loca.lt
+SEPARATION_API_URL=https://tylers-remixer-separation.loca.lt
+```
 
-This project is built with:
-
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
-
-## How can I deploy this project?
-
-Simply open [Lovable](https://lovable.dev/projects/223c3af8-9855-46c7-96dc-f0600de92406) and click on Share -> Publish.
-
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+You will also need to add your `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, and `ANTHROPIC_API_KEY`. Refer to the `.env.example` file for the full list.

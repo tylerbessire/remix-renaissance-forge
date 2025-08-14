@@ -1,25 +1,11 @@
 import { useState, useCallback } from 'react';
-import { supabase } from '@/integrations/supabase/client'; // Assuming supabase client is here
-
-// --- Interfaces ---
-interface MashabilityScore {
-  overall_score: number;
-  dimension_scores: Record<string, number>;
-  compatibility_breakdown: Record<string, any>;
-  recommendations: string[];
-  warnings: string[];
-}
-
-interface UserWeights {
-  harmonic: number;
-  rhythmic: number;
-  spectral: number;
-  vocal: number;
-}
+import { supabase } from '@/integrations/supabase/client';
+import type { MashabilityResult, UserWeights } from '@/types/mashability';
 
 // --- Hook ---
 export const useMashabilityScoring = () => {
-  const [score, setScore] = useState<MashabilityScore | null>(null);
+  const [score, setScore] = useState<MashabilityResult | null>(null);
+
   const [isCalculating, setIsCalculating] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -27,7 +13,9 @@ export const useMashabilityScoring = () => {
     song1Analysis: any,
     song2Analysis: any,
     weights?: UserWeights
-  ): Promise<MashabilityScore | null> => {
+
+  ): Promise<MashabilityResult | null> => {
+
     setIsCalculating(true);
     setError(null);
 

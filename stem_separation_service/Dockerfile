@@ -18,13 +18,15 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy the application code into the container
 COPY main.py .
 
-# Make port 8003 available to the world outside this container
-EXPOSE 8003
+# Make port 8004 available to the world outside this container
+EXPOSE 8004
 
 # Define environment variables (can be overridden)
-ENV PORT=8003
+ENV PORT=8004
+
 ENV SUPABASE_URL=""
 ENV SUPABASE_SERVICE_ROLE_KEY=""
 
 # Run main.py when the container launches
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8003"]
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8004"]
+
