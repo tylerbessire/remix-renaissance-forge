@@ -4,7 +4,11 @@ from pydantic import BaseModel
 import traceback
 import sys
 import os
+from dotenv import load_dotenv
 import supabase
+
+# Load environment variables from .env file
+load_dotenv()
 import tempfile
 import requests
 import torch

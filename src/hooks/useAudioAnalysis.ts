@@ -13,27 +13,65 @@ export function useAudioAnalysis() {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
 
   const analyzeSong = useCallback(async (song: Song): Promise<AnalysisResult | null> => {
-    const cached = analyzedSongs.get(song.id);
-    if (cached) return cached;
-
-    if (!song.file) {
-      toast.error(`Cannot analyze "${song.id}" without a file.`);
-      return null;
-    }
-
-    setIsAnalyzing(true);
-    toast.info(`Analyzing ${song.id}...`);
-
     try {
+      // Check cache first
+      const cached = analyzedSongs.get(song.id);
+      if (cached) return cached;
+
+      // Validate song object
+      if (!song || typeof song !== 'object') {
+        toast.error('Invalid song object provided for analysis');
+        return null;
+      }
+
+      if (!song.id) {
+        toast.error('Song is missing an ID');
+        return null;
+      }
+
+      if (!song.file) {
+        toast.error(`Cannot analyze "${song.id}" without a file`);
+        return null;
+      }
+
+      // Validate file object
+      if (!(song.file instanceof File)) {
+        toast.error(`Invalid file object for "${song.id}"`);
+        return null;
+      }
+
+      setIsAnalyzing(true);
+      toast.info(`Analyzing ${song.id}...`);
+
       const result = await analyzeFile(song.id, song.file);
+      
+      if (!result) {
+        toast.error(`Analysis returned no results for ${song.id}`);
+        return null;
+      }
+
       setAnalyzedSongs(prev => new Map(prev).set(song.id, result));
       toast.success(`Analysis complete for ${song.id}!`);
       return result;
+
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "Unknown error";
-      toast.error(`Analysis failed for ${song.id}: ${errorMessage}`);
-      console.error(error);
+      console.error(`Analysis error for song ${song?.id || 'unknown'}:`, error);
+      
+      let errorMessage = 'Unknown error occurred';
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      } else if (typeof error === 'string') {
+        errorMessage = error;
+      }
+
+      // Don't show the full technical error to users, just a friendly message
+      const userMessage = errorMessage.includes('Edge Function returned a non-2xx status code')
+        ? 'Analysis service is currently unavailable. Please try again later.'
+        : errorMessage;
+
+      toast.error(`Analysis failed for ${song?.id || 'song'}: ${userMessage}`);
       return null;
+
     } finally {
       setIsAnalyzing(false);
     }

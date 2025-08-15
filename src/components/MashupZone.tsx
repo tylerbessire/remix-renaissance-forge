@@ -32,6 +32,8 @@ interface MashupZoneProps {
   selectedSongs: Song[];
   onRemoveSong: (songId: string) => void;
   onClearAll: () => void;
+  onSongAdd?: (song: Song) => void;
+  allSongs?: Song[]; // Add this to look up songs by ID
   className?: string;
 }
 
@@ -39,6 +41,8 @@ export const MashupZone = ({
   selectedSongs, 
   onRemoveSong, 
   onClearAll,
+  onSongAdd,
+  allSongs = [],
   className 
 }: MashupZoneProps) => {
   const {
@@ -108,6 +112,26 @@ export const MashupZone = ({
     }
   };
 
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'copy';
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    const songId = e.dataTransfer.getData('text/plain');
+    if (songId) {
+      // Look up the song by ID from all available songs
+      const song = allSongs.find(s => s.id === songId);
+      if (song && !selectedSongs.find(s => s.id === song.id)) {
+        if (onSongAdd) {
+          onSongAdd(song);
+          toast.success(`Added ${song.name} to mashup!`);
+        }
+      }
+    }
+  };
+
   return (
     <Card className={cn("bg-card border p-6 space-y-6", className)}>
       <div className="text-center">
@@ -115,7 +139,11 @@ export const MashupZone = ({
         <p className="text-muted-foreground text-sm">AI-powered music mashup generation</p>
       </div>
 
-      <div className="min-h-64 border-2 border-dashed rounded-xl p-4 flex flex-col justify-center items-center text-center space-y-4">
+      <div 
+        className="min-h-64 border-2 border-dashed rounded-xl p-4 flex flex-col justify-center items-center text-center space-y-4 transition-colors hover:border-primary/50"
+        onDragOver={handleDragOver}
+        onDrop={handleDrop}
+      >
         {selectedSongs.length === 0 ? (
           <>
             <div className="w-16 h-16 rounded-full bg-primary/20 border-2 border-primary flex items-center justify-center">
@@ -143,7 +171,9 @@ export const MashupZone = ({
                       </Button>
                     </div>
                   </div>
-                  {analysis && <TrackAnalysisDisplay analysis={analysis} />}
+                  {analysis && analysis.rhythmic && analysis.harmonic && (
+                    <TrackAnalysisDisplay analysis={analysis} />
+                  )}
                 </div>
               );
             })}
@@ -172,12 +202,20 @@ export const MashupZone = ({
               </div>
               {mashupResult.timeline && <MashupTimeline timeline={mashupResult.timeline} />}
               <div className="flex gap-2 justify-center">
-                <Button size="sm" onClick={() => { if (audioRef.current) audioRef.current.pause(); audioRef.current = new Audio(mashupResult.audioUrl); audioRef.current.play().catch(e => toast.error('Error playing audio.')); }}>
-                  <Play className="h-4 w-4 mr-2" /> Play
-                </Button>
-                <Button size="sm" variant="outline" onClick={() => { const link = document.createElement('a'); link.href = mashupResult.audioUrl; link.download = `${mashupResult.title}.mp3`; link.click(); }}>
-                  <Download className="h-4 w-4 mr-2" /> Download
-                </Button>
+                {mashupResult.audioUrl ? (
+                  <>
+                    <Button size="sm" onClick={() => { if (audioRef.current) audioRef.current.pause(); audioRef.current = new Audio(mashupResult.audioUrl); audioRef.current.play().catch(e => toast.error('Error playing audio.')); }}>
+                      <Play className="h-4 w-4 mr-2" /> Play
+                    </Button>
+                    <Button size="sm" variant="outline" onClick={() => { const link = document.createElement('a'); link.href = mashupResult.audioUrl; link.download = `${mashupResult.title}.mp3`; link.click(); }}>
+                      <Download className="h-4 w-4 mr-2" /> Download
+                    </Button>
+                  </>
+                ) : (
+                  <div className="text-sm text-muted-foreground italic">
+                    Audio processing coming soon! For now, enjoy the AI-generated concept and timeline.
+                  </div>
+                )}
               </div>
             </div>
             <ClaudeCollaboration

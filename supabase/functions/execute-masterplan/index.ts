@@ -19,7 +19,11 @@ Deno.serve(async (req) => {
     // Forward the request to the Python processing service
     const response = await fetch(`${processingApiUrl}/execute-masterplan`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 
+        'Content-Type': 'application/json',
+        'User-Agent': 'Supabase-Edge-Function/1.0',
+        'bypass-tunnel-reminder': 'true'
+      },
       body: JSON.stringify(body)
     });
 

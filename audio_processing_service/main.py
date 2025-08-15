@@ -6,12 +6,19 @@ from typing import List, Dict
 import traceback
 import sys
 import os
+from dotenv import load_dotenv
 import supabase
+
+# Load environment variables from .env file
+load_dotenv()
 import tempfile
 import numpy as np
 import asyncio
 import json
 import requests
+
+# Add current directory to Python path
+sys.path.append(os.path.dirname(__file__))
 
 # Import helper modules
 from audio_ops import load_wav, save_wav, pitch_shift_semitones, stretch_to_grid_piecewise, apply_gain_db, apply_replay_gain
