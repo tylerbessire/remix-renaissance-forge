@@ -1021,8 +1021,31 @@ async function processBackground(jobId: string, songs: Song[]) {
       const analyzedSongs = songs.filter(song => 
         analyses.some(analysis => analysis.song_id === song.song_id)
       );
+
+      // Dynamically determine which songs are needed by inspecting the masterplan timeline.
+      // This prevents sending unused song data to the rendering service.
+      const songIdsInMasterplan = new Set<string>();
+      if (masterplan.masterplan && masterplan.masterplan.timeline) {
+        masterplan.masterplan.timeline.forEach(entry => {
+          if (entry.layers) {
+            entry.layers.forEach(layer => {
+              if (layer.songId) {
+                songIdsInMasterplan.add(layer.songId);
+              }
+            });
+          }
+        });
+      }
+
+      let songsForMasterplan = analyzedSongs.filter(song => songIdsInMasterplan.has(song.song_id));
+
+      // Fallback for safety: if masterplan is empty or doesn't reference songs, use the first two.
+      if (songsForMasterplan.length === 0 && analyzedSongs.length >= 2) {
+        console.warn("Masterplan timeline does not reference any analyzed songs. Defaulting to the first two songs used in masterplan creation.");
+        songsForMasterplan = analyzedSongs.slice(0, 2);
+      }
       
-      resultUrl = await renderMashup(masterplan, analyzedSongs, jobId);
+      resultUrl = await renderMashup(masterplan, songsForMasterplan, jobId);
       console.log(`Phase 4 complete: Audio rendering completed for job ${jobId}, result: ${resultUrl}`);
     } catch (renderingError) {
       console.error(`Audio rendering failed for job ${jobId}:`, renderingError);
