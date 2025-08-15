@@ -36,12 +36,36 @@ export const SongColumn = ({
   const { analyzeSong, getAnalysis, isAnalyzing } = useAudioAnalysis();
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const files = event.target.files;
-    if (!files) return;
+    try {
+      const files = event.target.files;
+      if (!files || files.length === 0) {
+        toast.error('No files selected');
+        return;
+      }
 
-    const newSongs: Song[] = [];
-    Array.from(files).forEach((file) => {
-      if (file.type.startsWith('audio/')) {
+      const newSongs: Song[] = [];
+      const rejectedFiles: string[] = [];
+      const maxFileSize = 50 * 1024 * 1024; // 50MB
+
+      Array.from(files).forEach((file) => {
+        // Validate file type
+        if (!file.type.startsWith('audio/')) {
+          rejectedFiles.push(`${file.name} (not an audio file)`);
+          return;
+        }
+
+        // Validate file size
+        if (file.size > maxFileSize) {
+          rejectedFiles.push(`${file.name} (too large, max 50MB)`);
+          return;
+        }
+
+        // Validate file is not empty
+        if (file.size === 0) {
+          rejectedFiles.push(`${file.name} (empty file)`);
+          return;
+        }
+
         const song: Song = {
           id: crypto.randomUUID(),
           name: file.name.replace(/\.[^/.]+$/, ""),
@@ -49,16 +73,41 @@ export const SongColumn = ({
           file
         };
         newSongs.push(song);
-      }
-    });
-
-    onSongsChange([...songs, ...newSongs]);
-    
-    newSongs.forEach(song => {
-      analyzeSong(song).catch(error => {
-        console.error('Auto-analysis failed:', error);
       });
-    });
+
+      // Show rejection messages
+      if (rejectedFiles.length > 0) {
+        toast.error(`Rejected files: ${rejectedFiles.join(', ')}`);
+      }
+
+      // Add valid songs
+      if (newSongs.length > 0) {
+        onSongsChange([...songs, ...newSongs]);
+        toast.success(`Added ${newSongs.length} song${newSongs.length !== 1 ? 's' : ''}`);
+        
+        // Auto-analyze new songs with error handling
+        newSongs.forEach(song => {
+          analyzeSong(song).catch(error => {
+            console.error('Auto-analysis failed for', song.name, ':', error);
+            // Don't show toast for auto-analysis failures, user can manually retry
+          });
+        });
+      } else if (rejectedFiles.length === 0) {
+        toast.error('No valid audio files found');
+      }
+
+      // Clear the input
+      event.target.value = '';
+
+    } catch (error) {
+      console.error('File upload error:', error);
+      toast.error('Failed to process uploaded files');
+      
+      // Clear the input on error
+      if (event.target) {
+        event.target.value = '';
+      }
+    }
   };
 
   const removeSong = (songId: string) => {
@@ -141,7 +190,19 @@ export const SongColumn = ({
                     </Button>
                   </div>
                 </div>
-                {analysis && <AudioAnalysisDisplay features={analysis.features} />}
+                {analysis && (
+                  <AudioAnalysisDisplay 
+                    features={{
+                      tempo: analysis.rhythmic?.bpm,
+                      energy: analysis.vocal?.vocal_presence,
+                      danceability: analysis.rhythmic?.beat_confidence,
+                      valence: analysis.harmonic?.key_confidence,
+                      speechiness: analysis.vocal?.vocal_presence,
+                      acousticness: 1 - (analysis.spectral?.brightness || 0) / 8000, // Normalize brightness to 0-1
+                      genre: analysis.harmonic?.key
+                    }} 
+                  />
+                )}
               </div>
             );
           })}

@@ -77,15 +77,19 @@ export function ClaudeCollaboration({
             </div>
             <div className="flex flex-wrap gap-2">
               {analysisData.map((data, i) => {
-                const analysis = data?.spectralFeatures || {};
-                const keyInfo = analysis.key || {};
-                const beatGrid = analysis.beat_grid || {};
+                if (!data) return null;
+                
+                // Use the new analysis structure
+                const bpm = data.rhythmic?.bpm || 0;
+                const key = data.harmonic?.key || 'Unknown';
+                const energy = data.vocal?.vocal_presence || 0;
+                
                 return (
                   <Badge key={i} variant="secondary" className="text-xs font-mono">
-                    Song {i + 1}: {beatGrid.bpm?.toFixed(0)} BPM, {keyInfo.name}, {analysis.energy?.toFixed(2)} Energy
+                    Song {i + 1}: {bpm.toFixed(0)} BPM, {key}, {energy.toFixed(2)} Energy
                   </Badge>
                 )
-              })}
+              }).filter(Boolean)}
             </div>
           </div>
         )}
