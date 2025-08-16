@@ -133,23 +133,30 @@ export const MashupZone = ({
   };
 
   return (
-    <Card className={cn("bg-card border p-6 space-y-6", className)}>
+    <Card className={cn("bg-card border border-sage-bright/20 p-6 space-y-6 animate-sage-glow backdrop-blur-sm", className)}>
       <div className="text-center">
-        <h2 className="text-2xl font-bold text-primary">Mashup Zone</h2>
-        <p className="text-muted-foreground text-sm">AI-powered music mashup generation</p>
+        <h2 className="text-3xl font-display font-bold text-sage-bright animate-text-glow">
+          🎵 Mashup Zone
+        </h2>
+        <p className="text-orange-bright font-mono text-sm font-semibold tracking-wide">
+          AI-POWERED MUSIC FUSION ENGINE
+        </p>
       </div>
 
       <div 
-        className="min-h-64 border-2 border-dashed rounded-xl p-4 flex flex-col justify-center items-center text-center space-y-4 transition-colors hover:border-primary/50"
+        className="min-h-64 border-2 border-dashed border-sage-bright/40 rounded-2xl p-4 flex flex-col justify-center items-center text-center space-y-4 transition-all duration-300 hover:border-sage-glow hover:bg-sage-bright/5 hover:shadow-lg hover:shadow-sage-bright/20 animate-modern-float"
         onDragOver={handleDragOver}
         onDrop={handleDrop}
       >
         {selectedSongs.length === 0 ? (
           <>
-            <div className="w-16 h-16 rounded-full bg-primary/20 border-2 border-primary flex items-center justify-center">
-              <Sparkles className="w-8 h-8 text-primary" />
+            <div className="w-20 h-20 rounded-full bg-sage-bright/20 border-3 border-sage-glow flex items-center justify-center animate-sage-glow">
+              <Sparkles className="w-10 h-10 text-sage-glow animate-pulse" />
             </div>
-            <p className="font-medium">Drag 2-3 tracks here</p>
+            <div className="space-y-2">
+              <p className="font-display font-bold text-lg text-sage-bright">DROP ZONE ACTIVE</p>
+              <p className="font-mono text-orange-bright text-sm tracking-wider">DRAG 2-3 TRACKS HERE</p>
+            </div>
           </>
         ) : (
           <div className="w-full space-y-3">
@@ -157,16 +164,27 @@ export const MashupZone = ({
               const analysis = getAnalysis(song.id);
               return (
                 <div key={song.id} className="space-y-2">
-                  <div className="flex items-center justify-between p-2 bg-background rounded-md border">
+                  <div className="flex items-center justify-between p-3 bg-background/80 backdrop-blur-sm rounded-xl border border-sage-bright/30 hover:border-sage-glow/50 transition-all duration-200 hover:shadow-md hover:shadow-sage-bright/10">
                     <div className="flex-1 text-left">
-                      <p className="font-medium text-sm">{song.name}</p>
-                      <p className="text-xs text-muted-foreground">{song.artist}</p>
+                      <p className="font-display font-semibold text-sm text-sage-bright">{song.name}</p>
+                      <p className="text-xs text-orange-bright font-mono tracking-wide">{song.artist}</p>
                     </div>
-                    <div className="flex items-center">
-                      <Button variant="ghost" size="sm" onClick={() => analyzeSong(song)} disabled={isAnalyzing || !song.file}>
+                    <div className="flex items-center space-x-1">
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={() => analyzeSong(song)} 
+                        disabled={isAnalyzing || !song.file}
+                        className="hover:bg-sage-bright/20 hover:text-sage-glow transition-colors"
+                      >
                         <Brain className="h-4 w-4" />
                       </Button>
-                      <Button variant="ghost" size="sm" onClick={() => onRemoveSong(song.id)} className="hover:text-destructive">
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={() => onRemoveSong(song.id)} 
+                        className="hover:bg-destructive/20 hover:text-destructive transition-colors"
+                      >
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>
@@ -183,9 +201,16 @@ export const MashupZone = ({
 
       <div className="space-y-4">
         {(isGenerating || isIterating) && (
-          <div className="space-y-2 text-center">
-            <p className="text-sm font-medium text-primary">{isIterating ? 'Claude is iterating...' : processingStep}</p>
-            {isGenerating && <Progress value={progress} className="w-full" />}
+          <div className="space-y-3 text-center p-4 bg-sage-bright/5 rounded-xl border border-sage-bright/20">
+            <p className="text-sm font-mono font-bold text-sage-bright tracking-wide">
+              {isIterating ? '🤖 CLAUDE ITERATING...' : processingStep}
+            </p>
+            {isGenerating && (
+              <div className="space-y-2">
+                <Progress value={progress} className="w-full h-3 bg-sage-deep/20" />
+                <p className="text-xs font-mono text-orange-bright">{progress}% COMPLETE</p>
+              </div>
+            )}
           </div>
         )}
 
@@ -229,13 +254,25 @@ export const MashupZone = ({
 
       <div className="flex flex-col gap-3">
         {selectedSongs.length >= 2 && (
-          <Button onClick={startMashup} size="lg" disabled={isGenerating || isIterating} className="font-bold w-full">
-            <Zap className="h-5 w-5 mr-2" />
-            {isGenerating ? "Creating..." : (isIterating ? "Update & Re-Generate" : "Create Mashup")}
+          <Button 
+            onClick={startMashup} 
+            size="lg" 
+            disabled={isGenerating || isIterating} 
+            className="font-display font-bold w-full text-lg py-6 bg-gradient-to-r from-sage-bright to-sage-glow hover:from-sage-glow hover:to-sage-bright text-white shadow-lg shadow-sage-bright/30 hover:shadow-xl hover:shadow-sage-glow/40 transition-all duration-300 animate-orange-pulse border-0"
+          >
+            <Zap className="h-6 w-6 mr-3 animate-pulse" />
+            {isGenerating ? "🎵 CREATING..." : (isIterating ? "🔄 UPDATE & RE-GENERATE" : "⚡ CREATE MASHUP")}
           </Button>
         )}
         {selectedSongs.length > 0 && (
-          <Button variant="outline" size="sm" onClick={onClearAll}>Clear All</Button>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={onClearAll}
+            className="font-mono border-orange-bright/50 text-orange-bright hover:bg-orange-bright/10 hover:border-orange-glow transition-colors"
+          >
+            🗑️ CLEAR ALL
+          </Button>
         )}
       </div>
     </Card>

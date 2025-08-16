@@ -5,6 +5,7 @@ from typing import Optional, Dict
 import numpy as np
 import traceback
 import sys
+import os
 from scipy.spatial.distance import cosine
 
 # --- Pydantic Models ---

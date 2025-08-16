@@ -937,28 +937,41 @@ async function processBackground(jobId: string, songs: Song[]) {
     
     // Phase 1: Audio Analysis
     currentPhase = 'audio_analysis';
-    JobStateManager.updateProgress(jobId, 10, 'Starting audio analysis...');
+    JobStateManager.updateProgress(jobId, 5, '🎵 Starting audio analysis...');
     
     const analyses: AnalysisResult[] = [];
     const analysisErrors: string[] = [];
     
     for (let i = 0; i < songs.length; i++) {
       const song = songs[i];
-      const progressBase = 10 + (i * 30); // Distribute 30% progress across all songs
+      const progressBase = 5 + (i * 25); // Distribute 25% progress per song (up to 3 songs = 75%)
+      const progressEnd = progressBase + 20;
       
       try {
-        JobStateManager.updateProgress(jobId, progressBase, `Analyzing "${song.name}"...`);
+        JobStateManager.updateProgress(jobId, progressBase, `🔍 Analyzing "${song.name}" (${i + 1}/${songs.length})...`);
+        
+        // Add intermediate progress updates during analysis
+        setTimeout(() => {
+          JobStateManager.updateProgress(jobId, progressBase + 5, `🎼 Extracting musical features from "${song.name}"...`);
+        }, 1000);
+        
+        setTimeout(() => {
+          JobStateManager.updateProgress(jobId, progressBase + 10, `🎹 Analyzing tempo and key of "${song.name}"...`);
+        }, 3000);
         
         const analysis = await analyzeSong(song);
         analyses.push(analysis);
         JobStateManager.addAnalysis(jobId, analysis);
         
-        console.log(`Successfully analyzed song ${i + 1}/${songs.length}: ${song.name}`);
+        JobStateManager.updateProgress(jobId, progressEnd, `✅ Analyzed "${song.name}" - BPM: ${analysis.tempo}, Key: ${analysis.key}`);
+        console.log(`Successfully analyzed song ${i + 1}/${songs.length}: ${song.name} (BPM: ${analysis.tempo}, Key: ${analysis.key})`);
         
       } catch (analysisError) {
         const errorMsg = `Failed to analyze "${song.name}": ${analysisError.message}`;
         analysisErrors.push(errorMsg);
         console.error(errorMsg);
+        
+        JobStateManager.updateProgress(jobId, progressBase + 15, `⚠️ Could not analyze "${song.name}" - continuing with other tracks...`);
         
         // If we can't analyze any songs, fail immediately
         if (analyses.length === 0 && i === songs.length - 1) {
@@ -985,13 +998,27 @@ async function processBackground(jobId: string, songs: Song[]) {
     
     // Phase 2: Mashability Scoring
     currentPhase = 'mashability_scoring';
-    JobStateManager.updateProgress(jobId, 50, 'Calculating mashability scores...');
+    JobStateManager.updateProgress(jobId, 60, '🧮 Calculating song compatibility scores...');
     
     let scores: MashabilityScore[];
     try {
+      // Add intermediate progress for scoring
+      setTimeout(() => {
+        JobStateManager.updateProgress(jobId, 65, '🎯 Analyzing harmonic compatibility...');
+      }, 500);
+      
+      setTimeout(() => {
+        JobStateManager.updateProgress(jobId, 68, '🥁 Checking rhythmic alignment...');
+      }, 1500);
+      
       scores = await calculateMashabilityScores(analyses);
       JobStateManager.setMashabilityScores(jobId, scores);
-      console.log(`Phase 2 complete: Calculated ${scores.length} mashability scores for job ${jobId}`);
+      
+      // Find the best compatibility score to show user
+      const bestScore = Math.max(...scores.map(s => s.score));
+      JobStateManager.updateProgress(jobId, 70, `✅ Compatibility analysis complete - Best match: ${Math.round(bestScore)}%`);
+      
+      console.log(`Phase 2 complete: Calculated ${scores.length} mashability scores for job ${jobId}, best: ${bestScore}%`);
     } catch (scoringError) {
       console.error(`Mashability scoring failed for job ${jobId}:`, scoringError);
       throw new Error(`Failed to calculate song compatibility: ${scoringError.message}`);
@@ -999,12 +1026,23 @@ async function processBackground(jobId: string, songs: Song[]) {
     
     // Phase 3: Creative Masterplan
     currentPhase = 'masterplan_generation';
-    JobStateManager.updateProgress(jobId, 65, 'Generating creative masterplan with Claude AI...');
+    JobStateManager.updateProgress(jobId, 72, '🤖 Claude AI is creating your masterplan...');
     
     let masterplan: Masterplan;
     try {
+      // Add intermediate progress for AI generation
+      setTimeout(() => {
+        JobStateManager.updateProgress(jobId, 75, '🎨 AI analyzing musical relationships...');
+      }, 1000);
+      
+      setTimeout(() => {
+        JobStateManager.updateProgress(jobId, 78, '✨ Generating creative concept and timeline...');
+      }, 3000);
+      
       masterplan = await createMasterplan(analyses, scores);
       JobStateManager.setMasterplan(jobId, masterplan);
+      
+      JobStateManager.updateProgress(jobId, 82, `🎭 Masterplan created: "${masterplan.masterplan.title}"`);
       console.log(`Phase 3 complete: Generated masterplan "${masterplan.masterplan.title}" for job ${jobId}`);
     } catch (masterplanError) {
       console.error(`Masterplan generation failed for job ${jobId}:`, masterplanError);
@@ -1013,7 +1051,7 @@ async function processBackground(jobId: string, songs: Song[]) {
     
     // Phase 4: Audio Rendering
     currentPhase = 'audio_rendering';
-    JobStateManager.updateProgress(jobId, 80, 'Rendering final mashup...');
+    JobStateManager.updateProgress(jobId, 85, '🎧 Starting audio rendering...');
     
     let resultUrl: string;
     try {
@@ -1022,7 +1060,22 @@ async function processBackground(jobId: string, songs: Song[]) {
         analyses.some(analysis => analysis.song_id === song.song_id)
       );
       
+      // Add intermediate progress for rendering phases
+      setTimeout(() => {
+        JobStateManager.updateProgress(jobId, 88, '🎵 Separating audio stems...');
+      }, 2000);
+      
+      setTimeout(() => {
+        JobStateManager.updateProgress(jobId, 92, '🎛️ Applying effects and transitions...');
+      }, 8000);
+      
+      setTimeout(() => {
+        JobStateManager.updateProgress(jobId, 96, '🎼 Mixing final audio...');
+      }, 15000);
+      
       resultUrl = await renderMashup(masterplan, analyzedSongs, jobId);
+      
+      JobStateManager.updateProgress(jobId, 99, '🎉 Finalizing your mashup...');
       console.log(`Phase 4 complete: Audio rendering completed for job ${jobId}, result: ${resultUrl}`);
     } catch (renderingError) {
       console.error(`Audio rendering failed for job ${jobId}:`, renderingError);
@@ -1030,6 +1083,7 @@ async function processBackground(jobId: string, songs: Song[]) {
     }
     
     // Complete the job
+    JobStateManager.updateProgress(jobId, 100, `🎊 Mashup complete: "${masterplan.masterplan.title}"!`);
     JobStateManager.completeJob(jobId, resultUrl, masterplan);
     
     const totalTime = Date.now() - startTime;

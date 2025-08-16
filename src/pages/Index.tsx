@@ -4,6 +4,7 @@ import { SongColumn } from '@/components/SongColumn';
 import { MashupZone } from '@/components/MashupZone';
 import { SongLibrary } from '@/components/SongLibrary';
 import { Button } from '@/components/ui/button';
+import { ThemeToggle } from '@/components/ThemeToggle';
 import { Sparkles, User, LogIn, LogOut } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';

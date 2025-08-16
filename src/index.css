@@ -4,48 +4,66 @@
 
 @layer base {
   :root {
-    --background: 48 33% 98%; /* Off-white */
-    --foreground: 24 10% 10%; /* Dark Brown for text */
-    --card: 48 33% 96%;
-    --card-foreground: 24 10% 10%;
-    --popover: 48 33% 98%;
-    --popover-foreground: 24 10% 10%;
-    --primary: 25 95% 53%; /* Burnt Orange */
-    --primary-foreground: 48 33% 98%;
-    --secondary: 35 33% 85%; /* Light Brown Accent */
-    --secondary-foreground: 24 10% 10%;
-    --muted: 35 33% 85%;
-    --muted-foreground: 24 10% 30%;
-    --accent: 35 33% 75%; /* Darker Brown Accent */
-    --accent-foreground: 24 10% 10%;
+    /* Light Mode - Desert Sage & Bright Orange Theme */
+    --background: 120 15% 97%; /* Very light sage background */
+    --foreground: 220 15% 15%; /* Dark charcoal for text */
+    --card: 120 20% 95%; /* Light sage card background */
+    --card-foreground: 220 15% 15%;
+    --popover: 120 15% 97%;
+    --popover-foreground: 220 15% 15%;
+    --primary: 120 45% 55%; /* Desert sage green - bright but not neon */
+    --primary-foreground: 0 0% 100%;
+    --secondary: 25 100% 60%; /* Bright orange accent */
+    --secondary-foreground: 0 0% 100%;
+    --muted: 120 15% 88%; /* Muted sage */
+    --muted-foreground: 220 15% 45%;
+    --accent: 120 35% 75%; /* Lighter sage accent */
+    --accent-foreground: 220 15% 15%;
     --destructive: 0 84% 60%;
-    --destructive-foreground: 48 33% 98%;
-    --border: 35 33% 85%;
-    --input: 35 33% 90%;
-    --ring: 25 95% 53%;
-    --radius: 0.5rem;
+    --destructive-foreground: 0 0% 100%;
+    --border: 120 20% 85%; /* Sage border */
+    --input: 120 15% 92%; /* Light sage input */
+    --ring: 120 45% 55%; /* Desert sage ring */
+    --radius: 0.75rem;
+    
+    /* Custom colors for the mashup app - Desert Sage & Electric Orange */
+    --sage-glow: 120 85% 75%; /* Ultra bright desert sage glow - almost neon */
+    --sage-bright: 120 80% 80%; /* Bright desert sage */
+    --sage-deep: 120 45% 40%; /* Deep sage */
+    --orange-bright: 25 100% 65%; /* Electric bright orange */
+    --orange-glow: 25 100% 75%; /* Ultra bright orange glow */
+    --orange-deep: 25 90% 50%; /* Deep orange */
   }
 
   .dark {
-    --background: 48 33% 98%;
-    --foreground: 24 10% 10%;
-    --card: 48 33% 96%;
-    --card-foreground: 24 10% 10%;
-    --popover: 48 33% 98%;
-    --popover-foreground: 24 10% 10%;
-    --primary: 25 95% 53%;
-    --primary-foreground: 48 33% 98%;
-    --secondary: 35 33% 85%;
-    --secondary-foreground: 24 10% 10%;
-    --muted: 35 33% 85%;
-    --muted-foreground: 24 10% 30%;
-    --accent: 35 33% 75%;
-    --accent-foreground: 24 10% 10%;
+    /* Dark Mode - Neon Desert Sage & Electric Orange */
+    --background: 220 25% 8%; /* Very dark background */
+    --foreground: 120 15% 90%; /* Light sage text */
+    --card: 220 20% 12%; /* Dark card background */
+    --card-foreground: 120 15% 90%;
+    --popover: 220 25% 8%;
+    --popover-foreground: 120 15% 90%;
+    --primary: 120 70% 65%; /* Bright glowing sage */
+    --primary-foreground: 220 25% 8%;
+    --secondary: 25 100% 65%; /* Electric bright orange */
+    --secondary-foreground: 220 25% 8%;
+    --muted: 220 15% 18%; /* Dark muted */
+    --muted-foreground: 120 15% 65%;
+    --accent: 120 50% 45%; /* Medium sage accent */
+    --accent-foreground: 120 15% 90%;
     --destructive: 0 84% 60%;
-    --destructive-foreground: 48 33% 98%;
-    --border: 35 33% 85%;
-    --input: 35 33% 90%;
-    --ring: 25 95% 53%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 220 20% 20%; /* Dark border */
+    --input: 220 20% 15%; /* Dark input */
+    --ring: 120 70% 65%; /* Bright sage ring */
+    
+    /* Dark mode custom colors */
+    --sage-glow: 120 80% 70%; /* Ultra bright sage glow */
+    --sage-bright: 120 75% 75%; /* Very bright sage */
+    --sage-deep: 120 45% 25%; /* Deep sage for dark mode */
+    --orange-bright: 25 100% 70%; /* Electric orange */
+    --orange-glow: 25 100% 80%; /* Ultra bright orange glow */
+    --orange-deep: 25 90% 35%; /* Deep orange for dark mode */
   }
 }
 

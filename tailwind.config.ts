@@ -89,11 +89,24 @@ export default {
 					purple: 'hsl(var(--electric-purple))',
 					red: 'hsl(var(--electric-red))',
 					yellow: 'hsl(var(--electric-yellow))'
+				},
+				// Desert Sage & Orange Theme
+				sage: {
+					glow: 'hsl(var(--sage-glow))',
+					bright: 'hsl(var(--sage-bright))',
+					deep: 'hsl(var(--sage-deep))'
+				},
+				orange: {
+					bright: 'hsl(var(--orange-bright))',
+					glow: 'hsl(var(--orange-glow))',
+					deep: 'hsl(var(--orange-deep))'
 				}
 			},
 			fontFamily: {
 				'montserrat': ['Montserrat', 'sans-serif'],
 				'sans': ['Montserrat', 'ui-sans-serif', 'system-ui'],
+				'mono': ['JetBrains Mono', 'Fira Code', 'Monaco', 'Consolas', 'monospace'],
+				'display': ['Orbitron', 'Montserrat', 'sans-serif'], // For futuristic headings
 			},
 			borderRadius: {
 				lg: 'var(--radius)',
@@ -228,6 +241,47 @@ export default {
 					'0%': { transform: 'translateY(-50%) rotate(315deg) scaleX(0)', opacity: '0' },
 					'50%': { transform: 'translateY(-50%) rotate(315deg) scaleX(1)', opacity: '1' },
 					'100%': { transform: 'translateY(-50%) rotate(0deg) scaleX(1)', opacity: '0.75' }
+				},
+				// Modern UI keyframes
+				'sage-glow': {
+					'0%': { 
+						boxShadow: '0 0 20px hsl(var(--sage-glow) / 0.3), 0 0 40px hsl(var(--sage-glow) / 0.1)',
+						filter: 'brightness(1)'
+					},
+					'100%': { 
+						boxShadow: '0 0 30px hsl(var(--sage-glow) / 0.6), 0 0 60px hsl(var(--sage-glow) / 0.3)',
+						filter: 'brightness(1.1)'
+					}
+				},
+				'orange-pulse': {
+					'0%': { 
+						boxShadow: '0 0 15px hsl(var(--orange-bright) / 0.4)',
+						transform: 'scale(1)'
+					},
+					'50%': { 
+						boxShadow: '0 0 25px hsl(var(--orange-glow) / 0.7), 0 0 40px hsl(var(--orange-bright) / 0.3)',
+						transform: 'scale(1.02)'
+					},
+					'100%': { 
+						boxShadow: '0 0 15px hsl(var(--orange-bright) / 0.4)',
+						transform: 'scale(1)'
+					}
+				},
+				'modern-float': {
+					'0%, 100%': { transform: 'translateY(0px) rotate(0deg)' },
+					'25%': { transform: 'translateY(-5px) rotate(0.5deg)' },
+					'50%': { transform: 'translateY(-8px) rotate(0deg)' },
+					'75%': { transform: 'translateY(-3px) rotate(-0.5deg)' }
+				},
+				'text-glow': {
+					'0%': { 
+						textShadow: '0 0 10px hsl(var(--sage-bright) / 0.5)',
+						filter: 'brightness(1)'
+					},
+					'100%': { 
+						textShadow: '0 0 20px hsl(var(--sage-glow) / 0.8), 0 0 30px hsl(var(--sage-bright) / 0.4)',
+						filter: 'brightness(1.1)'
+					}
 				}
 			},
 			animation: {
@@ -253,7 +307,12 @@ export default {
 				'laser-beam-5': 'laser-beam-5 2.1s ease-in-out infinite',
 				'laser-beam-6': 'laser-beam-6 1.9s ease-in-out infinite',
 				'laser-beam-7': 'laser-beam-7 2.3s ease-in-out infinite',
-				'laser-beam-8': 'laser-beam-8 2.0s ease-in-out infinite'
+				'laser-beam-8': 'laser-beam-8 2.0s ease-in-out infinite',
+				// Modern UI animations
+				'sage-glow': 'sage-glow 2s ease-in-out infinite alternate',
+				'orange-pulse': 'orange-pulse 1.5s ease-in-out infinite',
+				'modern-float': 'modern-float 4s ease-in-out infinite',
+				'text-glow': 'text-glow 3s ease-in-out infinite alternate'
 			},
 			backgroundImage: {
 				'gradient-sunset': 'var(--gradient-sunset)',
