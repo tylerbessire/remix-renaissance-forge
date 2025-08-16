@@ -617,7 +617,10 @@ async function createMasterplan(analyses: AnalysisResult[], scores: MashabilityS
         `${SERVICE_ENDPOINTS.orchestrator}/create-masterplan`, 
         {
           method: 'POST',
-          body: JSON.stringify(requestBody)
+          body: JSON.stringify(requestBody),
+          headers: {
+            'Authorization': `Bearer ${supabaseKey}`
+          }
         },
         TIMEOUT_CONFIG.orchestrator,
         'orchestrator'
