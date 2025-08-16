@@ -290,12 +290,6 @@ async function downloadAndEncodeAudio(storagePath: string): Promise<string> {
       throw new Error(`No data received for audio file: ${storagePath}`);
     }
     
-    // Validate file size (prevent memory issues with very large files)
-    const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
-    if (data.size > MAX_FILE_SIZE) {
-      throw new Error(`Audio file too large: ${Math.round(data.size / 1024 / 1024)}MB. Maximum size is 50MB.`);
-    }
-    
     console.log(`Successfully downloaded audio file: ${storagePath} (${Math.round(data.size / 1024)}KB)`);
     
     const arrayBuffer = await data.arrayBuffer();
@@ -335,16 +329,27 @@ async function analyzeSong(song: Song): Promise<AnalysisResult> {
         throw new Error(`Invalid song data: missing storage_path or song_id for ${song.name}`);
       }
       
-      const audioData = await downloadAndEncodeAudio(song.storage_path);
+      // Create a short-lived signed URL to pass to the analysis service.
+      // This avoids loading the entire file into this function's memory.
+      const { data, error: urlError } = await supabase.storage
+        .from('mashups')
+        .createSignedUrl(song.storage_path, 60); // 60-second validity
+
+      if (urlError) {
+        throw new Error(`Failed to create signed URL for ${song.storage_path}: ${urlError.message}`);
+      }
       
       const response = await makeServiceRequest(
         `${SERVICE_ENDPOINTS.analysis}/analyze`, 
         {
           method: 'POST',
           body: JSON.stringify({
-            audioData,
-            songId: song.song_id
-          })
+            file_url: data.signedUrl,
+            song_id: song.song_id
+          }),
+          headers: {
+            'Authorization': `Bearer ${supabaseKey}`
+          }
         },
         TIMEOUT_CONFIG.analysis,
         'analysis'
@@ -477,7 +482,10 @@ async function calculateMashabilityScores(analyses: AnalysisResult[]): Promise<M
               `${SERVICE_ENDPOINTS.scoring}/calculate-mashability`, 
               {
                 method: 'POST',
-                body: JSON.stringify(requestBody)
+                body: JSON.stringify(requestBody),
+                headers: {
+                  'Authorization': `Bearer ${supabaseKey}`
+                }
               },
               TIMEOUT_CONFIG.scoring,
               'scoring'
@@ -1021,8 +1029,31 @@ async function processBackground(jobId: string, songs: Song[]) {
       const analyzedSongs = songs.filter(song => 
         analyses.some(analysis => analysis.song_id === song.song_id)
       );
+
+      // Dynamically determine which songs are needed by inspecting the masterplan timeline.
+      // This prevents sending unused song data to the rendering service.
+      const songIdsInMasterplan = new Set<string>();
+      if (masterplan.masterplan && masterplan.masterplan.timeline) {
+        masterplan.masterplan.timeline.forEach(entry => {
+          if (entry.layers) {
+            entry.layers.forEach(layer => {
+              if (layer.songId) {
+                songIdsInMasterplan.add(layer.songId);
+              }
+            });
+          }
+        });
+      }
+
+      let songsForMasterplan = analyzedSongs.filter(song => songIdsInMasterplan.has(song.song_id));
+
+      // Fallback for safety: if masterplan is empty or doesn't reference songs, use the first two.
+      if (songsForMasterplan.length === 0 && analyzedSongs.length >= 2) {
+        console.warn("Masterplan timeline does not reference any analyzed songs. Defaulting to the first two songs used in masterplan creation.");
+        songsForMasterplan = analyzedSongs.slice(0, 2);
+      }
       
-      resultUrl = await renderMashup(masterplan, analyzedSongs, jobId);
+      resultUrl = await renderMashup(masterplan, songsForMasterplan, jobId);
       console.log(`Phase 4 complete: Audio rendering completed for job ${jobId}, result: ${resultUrl}`);
     } catch (renderingError) {
       console.error(`Audio rendering failed for job ${jobId}:`, renderingError);
