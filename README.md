@@ -46,4 +46,7 @@ ORCHESTRATOR_API_URL=https://tylers-remixer-orchestrator.loca.lt
 SEPARATION_API_URL=https://tylers-remixer-separation.loca.lt
 ```
 
+The `ORCHESTRATOR_API_URL` is required by the `claude-mashup-orchestrator` Supabase function.
+If it's missing, the function logs a warning at startup and returns a clear JSON error explaining that the variable is not set.
+
 You will also need to add your `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, and `ANTHROPIC_API_KEY`. Refer to the `.env.example` file for the full list.
