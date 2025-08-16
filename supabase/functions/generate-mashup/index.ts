@@ -45,14 +45,15 @@ const MAX_SERVICE_FAILURES = 3;
 const SERVICE_RECOVERY_TIME = 5 * 60 * 1000; // 5 minutes
 
 // Initialize Supabase client
-const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+// @ts-ignore: Deno check issue
+export const supabase = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
+// @ts-ignore: Deno check issue
 const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-const supabase = createClient(supabaseUrl, supabaseKey);
 
 /**
  * Enhanced error classification for better error handling
  */
-function classifyError(error: Error): {
+export function classifyError(error: Error): {
   type: 'network' | 'timeout' | 'service_unavailable' | 'invalid_data' | 'system' | 'unknown';
   recoverable: boolean;
   shouldRetry: boolean;
@@ -85,7 +86,7 @@ function classifyError(error: Error): {
 /**
  * Check if a service is available based on recent failure history
  */
-function isServiceAvailable(serviceName: keyof typeof SERVICE_STATUS): boolean {
+export function isServiceAvailable(serviceName: keyof typeof SERVICE_STATUS): boolean {
   const status = SERVICE_STATUS[serviceName];
   const now = Date.now();
   
@@ -105,7 +106,7 @@ function isServiceAvailable(serviceName: keyof typeof SERVICE_STATUS): boolean {
 /**
  * Mark a service as failed and update availability status
  */
-function markServiceFailure(serviceName: keyof typeof SERVICE_STATUS, error: Error): void {
+export function markServiceFailure(serviceName: keyof typeof SERVICE_STATUS, error: Error): void {
   const status = SERVICE_STATUS[serviceName];
   status.failures++;
   status.lastCheck = Date.now();
@@ -121,7 +122,7 @@ function markServiceFailure(serviceName: keyof typeof SERVICE_STATUS, error: Err
 /**
  * Mark a service as successful and reset failure count
  */
-function markServiceSuccess(serviceName: keyof typeof SERVICE_STATUS): void {
+export function markServiceSuccess(serviceName: keyof typeof SERVICE_STATUS): void {
   const status = SERVICE_STATUS[serviceName];
   if (status.failures > 0) {
     console.log(`Service ${serviceName} recovered after ${status.failures} failures`);
@@ -134,7 +135,7 @@ function markServiceSuccess(serviceName: keyof typeof SERVICE_STATUS): void {
 /**
  * Enhanced retry utility with exponential backoff and error classification
  */
-async function retryWithBackoff<T>(
+export async function retryWithBackoff<T>(
   operation: () => Promise<T>,
   context: string,
   serviceName?: keyof typeof SERVICE_STATUS,
@@ -193,7 +194,7 @@ async function retryWithBackoff<T>(
 /**
  * Enhanced HTTP request with dynamic timeout and comprehensive error handling
  */
-async function makeServiceRequest(
+export async function makeServiceRequest(
   url: string, 
   options: RequestInit, 
   timeoutMs?: number,
@@ -256,7 +257,7 @@ async function makeServiceRequest(
 /**
  * Graceful degradation handler for when services are unavailable
  */
-function handleServiceUnavailable(serviceName: string, fallbackMessage?: string): never {
+export function handleServiceUnavailable(serviceName: string, fallbackMessage?: string): never {
   const message = fallbackMessage || `The ${serviceName} service is currently unavailable. Please try again in a few minutes.`;
   throw new Error(message);
 }
@@ -264,7 +265,7 @@ function handleServiceUnavailable(serviceName: string, fallbackMessage?: string)
 /**
  * Download audio file from Supabase storage and convert to base64 with enhanced error handling
  */
-async function downloadAndEncodeAudio(storagePath: string): Promise<string> {
+export async function downloadAndEncodeAudio(storagePath: string): Promise<string> {
   try {
     console.log(`Downloading audio file from storage: ${storagePath}`);
     
@@ -288,12 +289,6 @@ async function downloadAndEncodeAudio(storagePath: string): Promise<string> {
     
     if (!data) {
       throw new Error(`No data received for audio file: ${storagePath}`);
-    }
-    
-    // Validate file size (prevent memory issues with very large files)
-    const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
-    if (data.size > MAX_FILE_SIZE) {
-      throw new Error(`Audio file too large: ${Math.round(data.size / 1024 / 1024)}MB. Maximum size is 50MB.`);
     }
     
     console.log(`Successfully downloaded audio file: ${storagePath} (${Math.round(data.size / 1024)}KB)`);
@@ -320,7 +315,7 @@ async function downloadAndEncodeAudio(storagePath: string): Promise<string> {
 /**
  * Call audio analysis service for a single song with comprehensive error handling
  */
-async function analyzeSong(song: Song): Promise<AnalysisResult> {
+export async function analyzeSong(song: Song): Promise<AnalysisResult> {
   if (!isServiceAvailable('analysis')) {
     handleServiceUnavailable('audio analysis', 
       'The audio analysis service is temporarily unavailable. Please try again in a few minutes.');
@@ -335,16 +330,27 @@ async function analyzeSong(song: Song): Promise<AnalysisResult> {
         throw new Error(`Invalid song data: missing storage_path or song_id for ${song.name}`);
       }
       
-      const audioData = await downloadAndEncodeAudio(song.storage_path);
+      // Create a short-lived signed URL to pass to the analysis service.
+      // This avoids loading the entire file into this function's memory.
+      const { data, error: urlError } = await supabase.storage
+        .from('mashups')
+        .createSignedUrl(song.storage_path, 60); // 60-second validity
+
+      if (urlError) {
+        throw new Error(`Failed to create signed URL for ${song.storage_path}: ${urlError.message}`);
+      }
       
       const response = await makeServiceRequest(
         `${SERVICE_ENDPOINTS.analysis}/analyze`, 
         {
           method: 'POST',
           body: JSON.stringify({
-            audioData,
-            songId: song.song_id
-          })
+            file_url: data.signedUrl,
+            song_id: song.song_id
+          }),
+          headers: {
+            'Authorization': `Bearer ${supabaseKey}`
+          }
         },
         TIMEOUT_CONFIG.analysis,
         'analysis'
@@ -408,7 +414,7 @@ async function analyzeSong(song: Song): Promise<AnalysisResult> {
 /**
  * Call mashability scoring service with comprehensive error handling
  */
-async function calculateMashabilityScores(analyses: AnalysisResult[]): Promise<MashabilityScore[]> {
+export async function calculateMashabilityScores(analyses: AnalysisResult[]): Promise<MashabilityScore[]> {
   // Validate minimum required analyses
   if (!analyses || analyses.length < 2) {
     throw new Error('At least 2 song analyses are required for mashability scoring');
@@ -477,7 +483,10 @@ async function calculateMashabilityScores(analyses: AnalysisResult[]): Promise<M
               `${SERVICE_ENDPOINTS.scoring}/calculate-mashability`, 
               {
                 method: 'POST',
-                body: JSON.stringify(requestBody)
+                body: JSON.stringify(requestBody),
+                headers: {
+                  'Authorization': `Bearer ${supabaseKey}`
+                }
               },
               TIMEOUT_CONFIG.scoring,
               'scoring'
@@ -542,7 +551,7 @@ async function calculateMashabilityScores(analyses: AnalysisResult[]): Promise<M
 /**
  * Call Claude AI orchestrator service to create masterplan with comprehensive error handling
  */
-async function createMasterplan(analyses: AnalysisResult[], scores: MashabilityScore[]): Promise<Masterplan> {
+export async function createMasterplan(analyses: AnalysisResult[], scores: MashabilityScore[]): Promise<Masterplan> {
   if (!isServiceAvailable('orchestrator')) {
     handleServiceUnavailable('Claude AI orchestrator', 
       'The AI masterplan generation service is temporarily unavailable. Please try again in a few minutes.');
@@ -608,7 +617,10 @@ async function createMasterplan(analyses: AnalysisResult[], scores: MashabilityS
         `${SERVICE_ENDPOINTS.orchestrator}/create-masterplan`, 
         {
           method: 'POST',
-          body: JSON.stringify(requestBody)
+          body: JSON.stringify(requestBody),
+          headers: {
+            'Authorization': `Bearer ${supabaseKey}`
+          }
         },
         TIMEOUT_CONFIG.orchestrator,
         'orchestrator'
@@ -675,7 +687,7 @@ async function createMasterplan(analyses: AnalysisResult[], scores: MashabilityS
 /**
  * Call audio processing service to render the final mashup with comprehensive error handling
  */
-async function renderMashup(masterplan: Masterplan, songs: Song[], jobId: string): Promise<string> {
+export async function renderMashup(masterplan: Masterplan, songs: Song[], jobId: string): Promise<string> {
   if (!isServiceAvailable('processing')) {
     handleServiceUnavailable('audio processing', 
       'The audio rendering service is temporarily unavailable. Please try again in a few minutes.');
@@ -912,7 +924,7 @@ async function renderMashup(masterplan: Masterplan, songs: Song[], jobId: string
 /**
  * Background processing chain that orchestrates all services with comprehensive error handling
  */
-async function processBackground(jobId: string, songs: Song[]) {
+export async function processBackground(jobId: string, songs: Song[]) {
   const startTime = Date.now();
   let currentPhase = 'initialization';
   
@@ -1021,8 +1033,31 @@ async function processBackground(jobId: string, songs: Song[]) {
       const analyzedSongs = songs.filter(song => 
         analyses.some(analysis => analysis.song_id === song.song_id)
       );
+
+      // Dynamically determine which songs are needed by inspecting the masterplan timeline.
+      // This prevents sending unused song data to the rendering service.
+      const songIdsInMasterplan = new Set<string>();
+      if (masterplan.masterplan && masterplan.masterplan.timeline) {
+        masterplan.masterplan.timeline.forEach(entry => {
+          if (entry.layers) {
+            entry.layers.forEach(layer => {
+              if (layer.songId) {
+                songIdsInMasterplan.add(layer.songId);
+              }
+            });
+          }
+        });
+      }
+
+      let songsForMasterplan = analyzedSongs.filter(song => songIdsInMasterplan.has(song.song_id));
+
+      // Fallback for safety: if masterplan is empty or doesn't reference songs, use the first two.
+      if (songsForMasterplan.length === 0 && analyzedSongs.length >= 2) {
+        console.warn("Masterplan timeline does not reference any analyzed songs. Defaulting to the first two songs used in masterplan creation.");
+        songsForMasterplan = analyzedSongs.slice(0, 2);
+      }
       
-      resultUrl = await renderMashup(masterplan, analyzedSongs, jobId);
+      resultUrl = await renderMashup(masterplan, songsForMasterplan, jobId);
       console.log(`Phase 4 complete: Audio rendering completed for job ${jobId}, result: ${resultUrl}`);
     } catch (renderingError) {
       console.error(`Audio rendering failed for job ${jobId}:`, renderingError);
@@ -1091,7 +1126,7 @@ Deno.serve(async (req) => {
     }
 
     // Parse request body with error handling
-    let requestBody: MashupRequest;
+    let requestBody;
     try {
       requestBody = await req.json();
     } catch (parseError) {
@@ -1108,17 +1143,7 @@ Deno.serve(async (req) => {
     const { songs } = requestBody;
 
     // Comprehensive input validation
-    if (!songs) {
-      return new Response(
-        JSON.stringify({ 
-          error: 'Missing songs data',
-          details: 'Request must include a "songs" array'
-        }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
-      );
-    }
-
-    if (!Array.isArray(songs)) {
+    if (!songs || !Array.isArray(songs)) {
       return new Response(
         JSON.stringify({ 
           error: 'Invalid songs data',
