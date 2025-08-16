@@ -483,7 +483,10 @@ async function calculateMashabilityScores(analyses: AnalysisResult[]): Promise<M
               `${SERVICE_ENDPOINTS.scoring}/calculate-mashability`, 
               {
                 method: 'POST',
-                body: JSON.stringify(requestBody)
+                body: JSON.stringify(requestBody),
+                headers: {
+                  'Authorization': `Bearer ${supabaseKey}`
+                }
               },
               TIMEOUT_CONFIG.scoring,
               'scoring'
