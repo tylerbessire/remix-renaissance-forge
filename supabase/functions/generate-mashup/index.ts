@@ -742,11 +742,11 @@ export async function renderMashup(masterplan: Masterplan, songs: Song[], jobId:
       });
       
       console.log(`Prepared ${songsWithAnalysis.length} songs with analysis data for rendering`);
-      
+
       const requestBody = {
         masterplan: {
-          timeline: masterplan.masterplan.timeline,
-          global_settings: masterplan.masterplan.global
+          timeline: masterplan.masterplan?.timeline || [],
+          global_settings: masterplan.masterplan?.global
         },
         songs: songsWithAnalysis,
         job_id: jobId
@@ -1018,7 +1018,7 @@ export async function processBackground(jobId: string, songs: Song[]) {
     try {
       masterplan = await createMasterplan(analyses, scores);
       JobStateManager.setMasterplan(jobId, masterplan);
-      console.log(`Phase 3 complete: Generated masterplan "${masterplan.masterplan.title}" for job ${jobId}`);
+      console.log(`Phase 3 complete: Generated masterplan "${masterplan.masterplan?.title}" for job ${jobId}`);
     } catch (masterplanError) {
       console.error(`Masterplan generation failed for job ${jobId}:`, masterplanError);
       throw new Error(`Failed to generate creative masterplan: ${masterplanError.message}`);

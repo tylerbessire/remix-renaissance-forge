@@ -3,7 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import type { Masterplan } from '@/types/masterplan';
 
 interface UseMashupOrchestratorReturn {
-  masterplan: any;
+  masterplan: Masterplan | null;
   creativeVision: string;
   finalAudioUrl: string | null;
   createMasterplan: (
@@ -11,7 +11,7 @@ interface UseMashupOrchestratorReturn {
     song2Analysis: any,
     mashabilityScore: any,
     userPreferences?: any
-  ) => Promise<any>;
+  ) => Promise<Masterplan>;
   executeMasterplan: (songs: any[], jobId: string) => Promise<string | null>;
   isCreating: boolean;
   isExecuting: boolean;
@@ -21,7 +21,7 @@ interface UseMashupOrchestratorReturn {
 }
 
 export const useMashupOrchestrator = (): UseMashupOrchestratorReturn => {
-  const [masterplan, setMasterplan] = useState<any>(null);
+  const [masterplan, setMasterplan] = useState<Masterplan | null>(null);
 
   const [creativeVision, setCreativeVision] = useState<string>('');
   const [finalAudioUrl, setFinalAudioUrl] = useState<string | null>(null);
@@ -55,12 +55,14 @@ export const useMashupOrchestrator = (): UseMashupOrchestratorReturn => {
       });
 
       if (invokeError) throw invokeError;
-      if (data?.error) throw new Error(data.details || 'Masterplan creation failed in API.');
+      if (!data || 'error' in data) throw new Error(data?.details || 'Masterplan creation failed in API.');
 
-      setMasterplan(data);
-      setCreativeVision(data.creative_vision);
+      const masterplanData: Masterplan = data;
 
-      return data;
+      setMasterplan(masterplanData);
+      setCreativeVision(masterplanData.creative_vision ?? '');
+
+      return masterplanData;
 
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Masterplan creation failed';

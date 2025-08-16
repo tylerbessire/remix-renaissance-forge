@@ -1,3 +1,23 @@
+export interface Layer {
+  songId: string;
+  stem: string;
+  volume_db: number;
+  effects: string[];
+}
+
+export interface TimelineEntry {
+  time_start_sec: number;
+  duration_sec: number;
+  description: string;
+  energy_level: number;
+  layers: Layer[];
+}
+
+export interface ProblemSolution {
+  problem: string;
+  solution: string;
+}
+
 export interface Masterplan {
   creative_vision: string;
   masterplan: {
@@ -8,21 +28,7 @@ export interface Masterplan {
       targetKey: string;
       timeSignature: [number, number];
     };
-    timeline: Array<{
-      time_start_sec: number;
-      duration_sec: number;
-      description: string;
-      energy_level: number;
-      layers: Array<{
-        songId: string;
-        stem: string;
-        volume_db: number;
-        effects: string[];
-      }>;
-    }>;
-    problems_and_solutions: Array<{
-      problem: string;
-      solution: string;
-    }>;
+    timeline: TimelineEntry[];
+    problems_and_solutions: ProblemSolution[];
   };
 }

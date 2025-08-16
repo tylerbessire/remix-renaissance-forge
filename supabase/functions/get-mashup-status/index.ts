@@ -192,10 +192,10 @@ Deno.serve(async (req) => {
       
       // Job completion with actual audio URLs and metadata
       ...(jobState.result_url && { result_url: jobState.result_url }),
-      ...(jobState.masterplan && { 
-        title: jobState.masterplan.masterplan.title,
+      ...(jobState.masterplan && {
+        title: jobState.masterplan.masterplan?.title,
         concept: jobState.masterplan.creative_vision,
-        timeline: jobState.masterplan.masterplan.timeline
+        timeline: jobState.masterplan.masterplan?.timeline
       }),
       
       // Detailed metadata about processing progress
