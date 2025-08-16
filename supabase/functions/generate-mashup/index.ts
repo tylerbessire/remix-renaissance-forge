@@ -342,9 +342,12 @@ async function analyzeSong(song: Song): Promise<AnalysisResult> {
         {
           method: 'POST',
           body: JSON.stringify({
-            audioData,
-            songId: song.song_id
-          })
+            audio_data: audioData,
+            song_id: song.song_id
+          }),
+          headers: {
+            'Authorization': `Bearer ${supabaseKey}`
+          }
         },
         TIMEOUT_CONFIG.analysis,
         'analysis'
