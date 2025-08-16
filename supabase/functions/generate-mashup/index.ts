@@ -344,6 +344,7 @@ async function analyzeSong(song: Song): Promise<AnalysisResult> {
         {
           method: 'POST',
           body: JSON.stringify({
+
             file_url: data.signedUrl,
             song_id: song.song_id
           }),
