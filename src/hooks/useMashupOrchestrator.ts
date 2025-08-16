@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import type { Masterplan } from '@/types/masterplan';
 
 interface UseMashupOrchestratorReturn {
   masterplan: any;
@@ -21,6 +22,7 @@ interface UseMashupOrchestratorReturn {
 
 export const useMashupOrchestrator = (): UseMashupOrchestratorReturn => {
   const [masterplan, setMasterplan] = useState<any>(null);
+
   const [creativeVision, setCreativeVision] = useState<string>('');
   const [finalAudioUrl, setFinalAudioUrl] = useState<string | null>(null);
 
@@ -43,7 +45,7 @@ export const useMashupOrchestrator = (): UseMashupOrchestratorReturn => {
     setFinalAudioUrl(null);
 
     try {
-      const { data, error: invokeError } = await supabase.functions.invoke('claude-mashup-orchestrator', {
+      const { data, error: invokeError } = await supabase.functions.invoke<Masterplan & { error?: string; details?: string }>('claude-mashup-orchestrator', {
         body: {
           song1_analysis: song1Analysis,
           song2_analysis: song2Analysis,
@@ -53,9 +55,9 @@ export const useMashupOrchestrator = (): UseMashupOrchestratorReturn => {
       });
 
       if (invokeError) throw invokeError;
-      if (data.error) throw new Error(data.details || 'Masterplan creation failed in API.');
+      if (data?.error) throw new Error(data.details || 'Masterplan creation failed in API.');
 
-      setMasterplan(data.masterplan);
+      setMasterplan(data);
       setCreativeVision(data.creative_vision);
 
       return data;
@@ -71,6 +73,7 @@ export const useMashupOrchestrator = (): UseMashupOrchestratorReturn => {
 
   const executeMasterplan = useCallback(async (songs: any[], jobId: string): Promise<string | null> => {
     if (!masterplan) throw new Error('No masterplan to execute');
+
 
     setIsExecuting(true);
     setExecutionProgress(0);
@@ -97,7 +100,7 @@ export const useMashupOrchestrator = (): UseMashupOrchestratorReturn => {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${accessToken}`
         },
-        body: JSON.stringify({ masterplan, songs, job_id: jobId })
+        body: JSON.stringify({ masterplan: masterplan?.masterplan, songs, job_id: jobId })
       });
 
       if (!response.ok) throw new Error(`Execution failed to start: ${response.statusText}`);
