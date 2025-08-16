@@ -290,12 +290,6 @@ async function downloadAndEncodeAudio(storagePath: string): Promise<string> {
       throw new Error(`No data received for audio file: ${storagePath}`);
     }
     
-    // Validate file size (prevent memory issues with very large files)
-    const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
-    if (data.size > MAX_FILE_SIZE) {
-      throw new Error(`Audio file too large: ${Math.round(data.size / 1024 / 1024)}MB. Maximum size is 50MB.`);
-    }
-    
     console.log(`Successfully downloaded audio file: ${storagePath} (${Math.round(data.size / 1024)}KB)`);
     
     const arrayBuffer = await data.arrayBuffer();
@@ -335,14 +329,23 @@ async function analyzeSong(song: Song): Promise<AnalysisResult> {
         throw new Error(`Invalid song data: missing storage_path or song_id for ${song.name}`);
       }
       
-      const audioData = await downloadAndEncodeAudio(song.storage_path);
+      // Create a short-lived signed URL to pass to the analysis service.
+      // This avoids loading the entire file into this function's memory.
+      const { data, error: urlError } = await supabase.storage
+        .from('mashups')
+        .createSignedUrl(song.storage_path, 60); // 60-second validity
+
+      if (urlError) {
+        throw new Error(`Failed to create signed URL for ${song.storage_path}: ${urlError.message}`);
+      }
       
       const response = await makeServiceRequest(
         `${SERVICE_ENDPOINTS.analysis}/analyze`, 
         {
           method: 'POST',
           body: JSON.stringify({
-            audio_data: audioData,
+
+            file_url: data.signedUrl,
             song_id: song.song_id
           }),
           headers: {

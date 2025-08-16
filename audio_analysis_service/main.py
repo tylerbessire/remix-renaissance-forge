@@ -1,5 +1,5 @@
 import uvicorn
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from pydantic import BaseModel
 import base64
 import io
@@ -8,9 +8,10 @@ import numpy as np
 import traceback
 import sys
 import os
-from scipy.spatial.distance import cosine
 import math
 import warnings
+import requests
+from typing import Optional
 
 # Suppress common warnings in production
 warnings.filterwarnings("ignore", message="pkg_resources is deprecated")
@@ -19,8 +20,9 @@ warnings.filterwarnings("ignore", message="invalid value encountered in divide")
 
 # --- Pydantic Models for API ---
 class AnalysisRequest(BaseModel):
-    audioData: str  # base64 encoded audio string
-    songId: str
+    song_id: str
+    audio_data: Optional[str] = None  # base64 encoded audio string
+    file_url: Optional[str] = None
 
 # --- FastAPI App Initialization ---
 app = FastAPI()
@@ -209,16 +211,31 @@ def run_studio_grade_analysis(file_bytes: bytes):
 
 # --- API Endpoints ---
 @app.post("/analyze")
-async def analyze_endpoint(request: AnalysisRequest):
+async def analyze_endpoint(data: AnalysisRequest):
     try:
-        audio_bytes = base64.b64decode(request.audioData)
+        audio_bytes = None
+        if data.file_url:
+            print(f"Downloading audio from URL: {data.file_url}")
+            response = requests.get(data.file_url, timeout=30)
+            response.raise_for_status()  # Raise an exception for bad status codes
+            audio_bytes = response.content
+        elif data.audio_data:
+            print("Decoding base64 audio data.")
+            audio_bytes = base64.b64decode(data.audio_data)
+        else:
+            raise HTTPException(status_code=400, detail="Either 'file_url' or 'audio_data' must be provided.")
+
+        print("Running studio-grade analysis...")
         analysis_results = run_studio_grade_analysis(audio_bytes)
 
         return {
             "success": True,
-            "songId": request.songId,
+            "songId": data.song_id,
             "analysis": analysis_results
         }
+    except requests.exceptions.RequestException as e:
+        print(f"Error downloading file: {e}", file=sys.stderr)
+        raise HTTPException(status_code=400, detail=f"Failed to download audio from URL: {e}")
     except Exception as e:
         print(f"Error during analysis: {e}", file=sys.stderr)
         traceback.print_exc()
