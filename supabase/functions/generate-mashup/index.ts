@@ -45,14 +45,15 @@ const MAX_SERVICE_FAILURES = 3;
 const SERVICE_RECOVERY_TIME = 5 * 60 * 1000; // 5 minutes
 
 // Initialize Supabase client
-const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+// @ts-ignore: Deno check issue
+export const supabase = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
+// @ts-ignore: Deno check issue
 const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-const supabase = createClient(supabaseUrl, supabaseKey);
 
 /**
  * Enhanced error classification for better error handling
  */
-function classifyError(error: Error): {
+export function classifyError(error: Error): {
   type: 'network' | 'timeout' | 'service_unavailable' | 'invalid_data' | 'system' | 'unknown';
   recoverable: boolean;
   shouldRetry: boolean;
@@ -85,7 +86,7 @@ function classifyError(error: Error): {
 /**
  * Check if a service is available based on recent failure history
  */
-function isServiceAvailable(serviceName: keyof typeof SERVICE_STATUS): boolean {
+export function isServiceAvailable(serviceName: keyof typeof SERVICE_STATUS): boolean {
   const status = SERVICE_STATUS[serviceName];
   const now = Date.now();
   
@@ -105,7 +106,7 @@ function isServiceAvailable(serviceName: keyof typeof SERVICE_STATUS): boolean {
 /**
  * Mark a service as failed and update availability status
  */
-function markServiceFailure(serviceName: keyof typeof SERVICE_STATUS, error: Error): void {
+export function markServiceFailure(serviceName: keyof typeof SERVICE_STATUS, error: Error): void {
   const status = SERVICE_STATUS[serviceName];
   status.failures++;
   status.lastCheck = Date.now();
@@ -121,7 +122,7 @@ function markServiceFailure(serviceName: keyof typeof SERVICE_STATUS, error: Err
 /**
  * Mark a service as successful and reset failure count
  */
-function markServiceSuccess(serviceName: keyof typeof SERVICE_STATUS): void {
+export function markServiceSuccess(serviceName: keyof typeof SERVICE_STATUS): void {
   const status = SERVICE_STATUS[serviceName];
   if (status.failures > 0) {
     console.log(`Service ${serviceName} recovered after ${status.failures} failures`);
@@ -134,7 +135,7 @@ function markServiceSuccess(serviceName: keyof typeof SERVICE_STATUS): void {
 /**
  * Enhanced retry utility with exponential backoff and error classification
  */
-async function retryWithBackoff<T>(
+export async function retryWithBackoff<T>(
   operation: () => Promise<T>,
   context: string,
   serviceName?: keyof typeof SERVICE_STATUS,
@@ -193,7 +194,7 @@ async function retryWithBackoff<T>(
 /**
  * Enhanced HTTP request with dynamic timeout and comprehensive error handling
  */
-async function makeServiceRequest(
+export async function makeServiceRequest(
   url: string, 
   options: RequestInit, 
   timeoutMs?: number,
@@ -256,7 +257,7 @@ async function makeServiceRequest(
 /**
  * Graceful degradation handler for when services are unavailable
  */
-function handleServiceUnavailable(serviceName: string, fallbackMessage?: string): never {
+export function handleServiceUnavailable(serviceName: string, fallbackMessage?: string): never {
   const message = fallbackMessage || `The ${serviceName} service is currently unavailable. Please try again in a few minutes.`;
   throw new Error(message);
 }
@@ -264,7 +265,7 @@ function handleServiceUnavailable(serviceName: string, fallbackMessage?: string)
 /**
  * Download audio file from Supabase storage and convert to base64 with enhanced error handling
  */
-async function downloadAndEncodeAudio(storagePath: string): Promise<string> {
+export async function downloadAndEncodeAudio(storagePath: string): Promise<string> {
   try {
     console.log(`Downloading audio file from storage: ${storagePath}`);
     
@@ -314,7 +315,7 @@ async function downloadAndEncodeAudio(storagePath: string): Promise<string> {
 /**
  * Call audio analysis service for a single song with comprehensive error handling
  */
-async function analyzeSong(song: Song): Promise<AnalysisResult> {
+export async function analyzeSong(song: Song): Promise<AnalysisResult> {
   if (!isServiceAvailable('analysis')) {
     handleServiceUnavailable('audio analysis', 
       'The audio analysis service is temporarily unavailable. Please try again in a few minutes.');
@@ -414,7 +415,7 @@ async function analyzeSong(song: Song): Promise<AnalysisResult> {
 /**
  * Call mashability scoring service with comprehensive error handling
  */
-async function calculateMashabilityScores(analyses: AnalysisResult[]): Promise<MashabilityScore[]> {
+export async function calculateMashabilityScores(analyses: AnalysisResult[]): Promise<MashabilityScore[]> {
   // Validate minimum required analyses
   if (!analyses || analyses.length < 2) {
     throw new Error('At least 2 song analyses are required for mashability scoring');
@@ -551,7 +552,7 @@ async function calculateMashabilityScores(analyses: AnalysisResult[]): Promise<M
 /**
  * Call Claude AI orchestrator service to create masterplan with comprehensive error handling
  */
-async function createMasterplan(analyses: AnalysisResult[], scores: MashabilityScore[]): Promise<Masterplan> {
+export async function createMasterplan(analyses: AnalysisResult[], scores: MashabilityScore[]): Promise<Masterplan> {
   if (!isServiceAvailable('orchestrator')) {
     handleServiceUnavailable('Claude AI orchestrator', 
       'The AI masterplan generation service is temporarily unavailable. Please try again in a few minutes.');
@@ -687,7 +688,7 @@ async function createMasterplan(analyses: AnalysisResult[], scores: MashabilityS
 /**
  * Call audio processing service to render the final mashup with comprehensive error handling
  */
-async function renderMashup(masterplan: Masterplan, songs: Song[], jobId: string): Promise<string> {
+export async function renderMashup(masterplan: Masterplan, songs: Song[], jobId: string): Promise<string> {
   if (!isServiceAvailable('processing')) {
     handleServiceUnavailable('audio processing', 
       'The audio rendering service is temporarily unavailable. Please try again in a few minutes.');
@@ -924,7 +925,7 @@ async function renderMashup(masterplan: Masterplan, songs: Song[], jobId: string
 /**
  * Background processing chain that orchestrates all services with comprehensive error handling
  */
-async function processBackground(jobId: string, songs: Song[]) {
+export async function processBackground(jobId: string, songs: Song[]) {
   const startTime = Date.now();
   let currentPhase = 'initialization';
   
@@ -1126,7 +1127,7 @@ Deno.serve(async (req) => {
     }
 
     // Parse request body with error handling
-    let requestBody: MashupRequest;
+    let requestBody;
     try {
       requestBody = await req.json();
     } catch (parseError) {
@@ -1143,17 +1144,7 @@ Deno.serve(async (req) => {
     const { songs } = requestBody;
 
     // Comprehensive input validation
-    if (!songs) {
-      return new Response(
-        JSON.stringify({ 
-          error: 'Missing songs data',
-          details: 'Request must include a "songs" array'
-        }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
-      );
-    }
-
-    if (!Array.isArray(songs)) {
+    if (!songs || !Array.isArray(songs)) {
       return new Response(
         JSON.stringify({ 
           error: 'Invalid songs data',

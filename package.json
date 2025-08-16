@@ -14,7 +14,8 @@
     "tunnel:start": "node scripts/start-tunnels.js",
     "tunnel:simple": "concurrently \"npx lt --port 8000 --subdomain tylers-remixer-analysis\" \"npx lt --port 8001 --subdomain tylers-remixer-processing\" \"npx lt --port 8002 --subdomain tylers-remixer-scoring\" \"npx lt --port 8003 --subdomain tylers-remixer-orchestrator\" \"npx lt --port 8004 --subdomain tylers-remixer-separation\"",
     "dev:complete": "concurrently \"npm:python:start\" \"npm:tunnel:start\" \"npm:dev\"",
-    "setup": "npm install && npm run python:install && echo '✅ Setup complete! Run: npm run dev:complete'"
+    "setup": "npm install && npm run python:install && echo '✅ Setup complete! Run: npm run dev:complete'",
+    "test:integration": "tsx supabase/functions/_shared/test-integration.js"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.57.0",
@@ -90,6 +91,8 @@
     "tailwindcss": "^3.4.11",
     "typescript": "^5.5.3",
     "typescript-eslint": "^8.0.1",
-    "vite": "^5.4.1"
+    "vite": "^5.4.1",
+    "rewire": "^7.0.0",
+    "tsx": "^4.16.2"
   }
 }

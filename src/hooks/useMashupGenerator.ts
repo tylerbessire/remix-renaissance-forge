@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, SUPABASE_PUBLISHABLE_KEY } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { type MashupSection } from "@/components/MashupTimeline";
 
@@ -93,6 +93,9 @@ export const useMashupGenerator = () => {
   const pollMashupStatus = useCallback(async (jobId: string) => {
     const { data, error } = await supabase.functions.invoke<MashupStatusData>('get-mashup-status', {
       body: { jobId },
+      headers: {
+        Authorization: `Bearer ${SUPABASE_PUBLISHABLE_KEY}`
+      }
     });
 
     if (error) {
