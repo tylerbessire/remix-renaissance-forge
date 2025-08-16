@@ -28,6 +28,7 @@ npm run dev:complete
 ```
 
 That's it! 🚀 This single command will:
+- ✅ Clean up any processes using ports 8000-8080.
 - ✅ Start 4 Python API servers for analysis, processing, scoring, and orchestration.
 - ✅ Create 4 consistent tunnel URLs with `localtunnel`.
 - ✅ Start the Vite dev server for the frontend.
