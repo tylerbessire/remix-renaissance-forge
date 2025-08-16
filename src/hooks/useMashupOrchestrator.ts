@@ -2,8 +2,27 @@ import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import type { Masterplan } from '@/types/masterplan';
 
-export const useMashupOrchestrator = () => {
-  const [masterplan, setMasterplan] = useState<Masterplan | null>(null);
+interface UseMashupOrchestratorReturn {
+  masterplan: any;
+  creativeVision: string;
+  finalAudioUrl: string | null;
+  createMasterplan: (
+    song1Analysis: any,
+    song2Analysis: any,
+    mashabilityScore: any,
+    userPreferences?: any
+  ) => Promise<any>;
+  executeMasterplan: (songs: any[], jobId: string) => Promise<string | null>;
+  isCreating: boolean;
+  isExecuting: boolean;
+  executionProgress: number;
+  executionMessage: string;
+  error: string | null;
+}
+
+export const useMashupOrchestrator = (): UseMashupOrchestratorReturn => {
+  const [masterplan, setMasterplan] = useState<any>(null);
+
   const [creativeVision, setCreativeVision] = useState<string>('');
   const [finalAudioUrl, setFinalAudioUrl] = useState<string | null>(null);
 
@@ -52,14 +71,17 @@ export const useMashupOrchestrator = () => {
     }
   }, []);
 
-  const executeMasterplan = useCallback(async (songs: any[], jobId: string) => {
-    if (!masterplan?.masterplan) throw new Error('No masterplan to execute');
+  const executeMasterplan = useCallback(async (songs: any[], jobId: string): Promise<string | null> => {
+    if (!masterplan) throw new Error('No masterplan to execute');
+
 
     setIsExecuting(true);
     setExecutionProgress(0);
     setExecutionMessage('Initiating rendering process...');
     setError(null);
     setFinalAudioUrl(null);
+
+    let latestUrl: string | null = null;
 
     try {
 
@@ -108,6 +130,7 @@ export const useMashupOrchestrator = () => {
                 const { data: signedUrlData, error: urlError } = await supabase.storage.from('mashups').createSignedUrl(data.storage_path, 3600);
                 if (urlError) throw urlError;
                 setFinalAudioUrl(signedUrlData.signedUrl);
+                latestUrl = signedUrlData.signedUrl;
               }
             } catch (e) {
               console.error("Failed to parse stream data chunk:", line);
@@ -115,7 +138,7 @@ export const useMashupOrchestrator = () => {
           }
         }
       }
-      return finalAudioUrl;
+      return latestUrl;
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Execution failed';
       setError(errorMessage);
@@ -123,7 +146,7 @@ export const useMashupOrchestrator = () => {
     } finally {
       setIsExecuting(false);
     }
-  }, [masterplan, finalAudioUrl]);
+  }, [masterplan]);
 
   return {
     masterplan,
