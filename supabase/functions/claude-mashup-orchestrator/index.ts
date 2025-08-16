@@ -7,7 +7,7 @@ const corsHeaders = {
 const orchestratorApiUrl = Deno.env.get('ORCHESTRATOR_API_URL');
 if (!orchestratorApiUrl) {
   console.warn(
-    'Warning: ORCHESTRATOR_API_URL environment variable is not set. Requests will fail.'
+    'ORCHESTRATOR_API_URL is not configured. The claude-mashup-orchestrator function cannot forward requests.'
   );
 }
 
@@ -19,8 +19,9 @@ if (req.method === 'OPTIONS') {
 if (!orchestratorApiUrl) {
   return new Response(
     JSON.stringify({
-      error: 'Missing environment variable',
-      details: 'ORCHESTRATOR_API_URL environment variable is not set.',
+      error: 'Missing ORCHESTRATOR_API_URL',
+      details:
+        'Set the ORCHESTRATOR_API_URL environment variable to the base URL of the orchestrator service.',
     }),
     {
       status: 500,
