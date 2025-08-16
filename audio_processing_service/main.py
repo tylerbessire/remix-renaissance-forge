@@ -17,13 +17,15 @@ import asyncio
 import json
 import requests
 
-# Add current directory to Python path
+# Add current directory and project root to Python path
 sys.path.append(os.path.dirname(__file__))
+sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
 # Import helper modules
 from audio_ops import load_wav, save_wav, pitch_shift_semitones, stretch_to_grid_piecewise, apply_gain_db, apply_replay_gain
 from transitions import s_curve_xfade
 from align import plan_shifts
+from supabase_helpers import invoke_supabase_function, SUPABASE_URL, SUPABASE_KEY
 
 # --- Pydantic Models ---
 class Masterplan(BaseModel):
@@ -44,17 +46,7 @@ class RenderRequest(BaseModel):
 app = FastAPI()
 
 # --- Supabase & API Clients ---
-SUPABASE_URL = os.environ.get("SUPABASE_URL")
-SUPABASE_KEY = os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
 supabase_client = supabase.create_client(SUPABASE_URL, SUPABASE_KEY)
-
-def invoke_supabase_function(function_name, payload):
-    # This is used to call other functions like the new stem separator
-    function_url = f"{SUPABASE_URL}/functions/v1/{function_name}"
-    headers = {'Authorization': f'Bearer {SUPABASE_KEY}', 'Content-Type': 'application/json'}
-    response = requests.post(function_url, data=json.dumps(payload), headers=headers)
-    response.raise_for_status()
-    return response.json()
 
 # --- Audio Processing Logic ---
 async def render_mashup_streamer(plan: Dict, songs: List[Dict], job_id: str):
