@@ -12,6 +12,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { TrackAnalysisDisplay } from "./TrackAnalysisDisplay";
 import { MashupTimeline, type MashupSection } from "./MashupTimeline";
 import { ClaudeCollaboration } from "./ClaudeCollaboration";
+import { ClaudeMonitor } from "./ClaudeMonitor";
 
 interface Song {
   id: string;
@@ -51,7 +52,9 @@ export const MashupZone = ({
     progress,
     processingStep,
     mashupResult,
-    setMashupResult
+    setMashupResult,
+    claudePlan,
+    claudeThoughts,
   } = useMashupGenerator();
 
   const { analyzeMashupCompatibility, analyzeSong, getAnalysis, isAnalyzing } = useAudioAnalysis();
@@ -186,6 +189,7 @@ export const MashupZone = ({
           <div className="space-y-2 text-center">
             <p className="text-sm font-medium text-primary">{isIterating ? 'Claude is iterating...' : processingStep}</p>
             {isGenerating && <Progress value={progress} className="w-full" />}
+            {isGenerating && <ClaudeMonitor plan={claudePlan} thoughts={claudeThoughts} />}
           </div>
         )}
 

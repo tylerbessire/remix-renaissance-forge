@@ -54,6 +54,11 @@ interface MashupStatusData {
     mashability_scores_count: number;
     has_masterplan: boolean;
   };
+  // For DJ Claude's thoughts
+  masterplan?: {
+    plan?: string[];
+    thoughts?: string;
+  };
 }
 
 const sanitizeFilename = (filename: string): string => {
@@ -65,6 +70,8 @@ export const useMashupGenerator = () => {
   const [progress, setProgress] = useState(0);
   const [processingStep, setProcessingStep] = useState("");
   const [mashupResult, setMashupResult] = useState<MashupResult | null>(null);
+  const [claudePlan, setClaudePlan] = useState<string[]>([]);
+  const [claudeThoughts, setClaudeThoughts] = useState<string>("");
   const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   const stopPolling = useCallback(() => {
@@ -113,6 +120,15 @@ export const useMashupGenerator = () => {
     
     setProcessingStep(currentStep);
     setProgress(currentProgress);
+
+    if (data.masterplan) {
+      if (data.masterplan.plan) {
+        setClaudePlan(data.masterplan.plan);
+      }
+      if (data.masterplan.thoughts) {
+        setClaudeThoughts(data.masterplan.thoughts);
+      }
+    }
 
     // Show estimated completion time if available
     if (data.estimated_completion && data.status === 'processing') {
@@ -175,6 +191,8 @@ export const useMashupGenerator = () => {
     setMashupResult(null);
     setProgress(0);
     setProcessingStep("Uploading your tracks...");
+    setClaudePlan([]);
+    setClaudeThoughts("");
 
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) {
@@ -231,5 +249,7 @@ export const useMashupGenerator = () => {
     processingStep,
     mashupResult,
     setMashupResult,
+    claudePlan,
+    claudeThoughts,
   };
 };

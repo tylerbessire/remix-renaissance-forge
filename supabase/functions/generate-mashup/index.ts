@@ -1,18 +1,20 @@
-import { JobStateManager, Song, AnalysisResult, MashabilityScore, Masterplan } from '../_shared/jobStateManager.ts';
+import { DatabaseJobStateManager } from '../_shared/databaseJobStateManager.ts';
+import { Song, AnalysisResult, MashabilityScore, Masterplan } from '../_shared/jobStateManager.ts';
 import { corsHeaders, tunnelBypassHeaders } from '../_shared/cors.ts';
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { createClient } from '@supabase/supabase-js';
 
 interface MashupRequest {
   songs: Song[];
 }
 
 // Service endpoints from environment variables
+const env = typeof Deno !== 'undefined' ? Deno.env : process.env;
 const SERVICE_ENDPOINTS = {
-  analysis: Deno.env.get('ANALYSIS_API_URL') || 'http://localhost:8000',
-  scoring: Deno.env.get('SCORING_API_URL') || 'http://localhost:8002', 
-  orchestrator: Deno.env.get('ORCHESTRATOR_API_URL') || 'http://localhost:8003',
-  processing: Deno.env.get('PROCESSING_API_URL') || 'http://localhost:8001',
-  separation: Deno.env.get('SEPARATION_API_URL') || 'http://localhost:8004'
+  analysis: env.get('ANALYSIS_API_URL') || 'http://localhost:8000',
+  scoring: env.get('SCORING_API_URL') || 'http://localhost:8002',
+  orchestrator: env.get('ORCHESTRATOR_API_URL') || 'http://localhost:8003',
+  processing: env.get('PROCESSING_API_URL') || 'http://localhost:8001',
+  separation: env.get('SEPARATION_API_URL') || 'http://localhost:8004'
 };
 
 // Retry configuration
@@ -46,9 +48,9 @@ const SERVICE_RECOVERY_TIME = 5 * 60 * 1000; // 5 minutes
 
 // Initialize Supabase client
 // @ts-ignore: Deno check issue
-export const supabase = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
+export const supabase = createClient(env.get('SUPABASE_URL')!, env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 // @ts-ignore: Deno check issue
-const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+const supabaseKey = env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 
 /**
  * Enhanced error classification for better error handling
@@ -708,7 +710,7 @@ export async function renderMashup(masterplan: Masterplan, songs: Song[], jobId:
       }
       
       // Prepare song data with analysis results from job state
-      const jobState = JobStateManager.getJob(jobId);
+      const jobState = await DatabaseJobStateManager.getJob(jobId);
       if (!jobState) {
         throw new Error(`Job state not found for job ${jobId}`);
       }
@@ -808,7 +810,7 @@ export async function renderMashup(masterplan: Masterplan, songs: Song[], jobId:
                   lastProgress = mappedProgress;
                   
                   console.log(`Rendering progress: ${data.progress}% - ${data.message}`);
-                  JobStateManager.updateProgress(jobId, mappedProgress, data.message);
+                  await DatabaseJobStateManager.updateProgress(jobId, mappedProgress, data.message);
                 }
                 
                 // Handle completion with storage path
@@ -950,7 +952,7 @@ export async function processBackground(jobId: string, songs: Song[]) {
     
     // Phase 1: Audio Analysis
     currentPhase = 'audio_analysis';
-    JobStateManager.updateProgress(jobId, 10, 'Starting audio analysis...');
+    await DatabaseJobStateManager.updateProgress(jobId, 10, 'Starting audio analysis...');
     
     const analyses: AnalysisResult[] = [];
     const analysisErrors: string[] = [];
@@ -960,11 +962,11 @@ export async function processBackground(jobId: string, songs: Song[]) {
       const progressBase = 10 + (i * 30); // Distribute 30% progress across all songs
       
       try {
-        JobStateManager.updateProgress(jobId, progressBase, `Analyzing "${song.name}"...`);
+        await DatabaseJobStateManager.updateProgress(jobId, progressBase, `Analyzing "${song.name}"...`);
         
         const analysis = await analyzeSong(song);
         analyses.push(analysis);
-        JobStateManager.addAnalysis(jobId, analysis);
+        await DatabaseJobStateManager.addAnalysis(jobId, analysis);
         
         console.log(`Successfully analyzed song ${i + 1}/${songs.length}: ${song.name}`);
         
@@ -998,12 +1000,12 @@ export async function processBackground(jobId: string, songs: Song[]) {
     
     // Phase 2: Mashability Scoring
     currentPhase = 'mashability_scoring';
-    JobStateManager.updateProgress(jobId, 50, 'Calculating mashability scores...');
+    await DatabaseJobStateManager.updateProgress(jobId, 50, 'Calculating mashability scores...');
     
     let scores: MashabilityScore[];
     try {
       scores = await calculateMashabilityScores(analyses);
-      JobStateManager.setMashabilityScores(jobId, scores);
+      await DatabaseJobStateManager.setMashabilityScores(jobId, scores);
       console.log(`Phase 2 complete: Calculated ${scores.length} mashability scores for job ${jobId}`);
     } catch (scoringError) {
       console.error(`Mashability scoring failed for job ${jobId}:`, scoringError);
@@ -1012,12 +1014,12 @@ export async function processBackground(jobId: string, songs: Song[]) {
     
     // Phase 3: Creative Masterplan
     currentPhase = 'masterplan_generation';
-    JobStateManager.updateProgress(jobId, 65, 'Generating creative masterplan with Claude AI...');
+    await DatabaseJobStateManager.updateProgress(jobId, 65, 'Generating creative masterplan with Claude AI...');
     
     let masterplan: Masterplan;
     try {
       masterplan = await createMasterplan(analyses, scores);
-      JobStateManager.setMasterplan(jobId, masterplan);
+      await DatabaseJobStateManager.setMasterplan(jobId, masterplan);
       console.log(`Phase 3 complete: Generated masterplan "${masterplan.masterplan?.title}" for job ${jobId}`);
     } catch (masterplanError) {
       console.error(`Masterplan generation failed for job ${jobId}:`, masterplanError);
@@ -1026,7 +1028,7 @@ export async function processBackground(jobId: string, songs: Song[]) {
     
     // Phase 4: Audio Rendering
     currentPhase = 'audio_rendering';
-    JobStateManager.updateProgress(jobId, 80, 'Rendering final mashup...');
+    await DatabaseJobStateManager.updateProgress(jobId, 80, 'Rendering final mashup...');
     
     let resultUrl: string;
     try {
@@ -1066,7 +1068,7 @@ export async function processBackground(jobId: string, songs: Song[]) {
     }
     
     // Complete the job
-    JobStateManager.completeJob(jobId, resultUrl, masterplan);
+    await DatabaseJobStateManager.completeJob(jobId, resultUrl, masterplan);
     
     const totalTime = Date.now() - startTime;
     console.log(`Background processing completed successfully for job ${jobId} in ${Math.round(totalTime / 1000)} seconds`);
@@ -1101,7 +1103,7 @@ export async function processBackground(jobId: string, songs: Song[]) {
         break;
     }
     
-    JobStateManager.failJob(jobId, userFriendlyError);
+    await DatabaseJobStateManager.failJob(jobId, userFriendlyError);
   }
 }
 
@@ -1213,19 +1215,19 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Check system capacity (basic rate limiting)
-    const currentJobs = JobStateManager.getJobCount();
-    const MAX_CONCURRENT_JOBS = 10; // Configurable limit
+    // TODO: Re-implement system capacity check with a database query
+    // const currentJobs = await DatabaseJobStateManager.getActiveJobCount();
+    // const MAX_CONCURRENT_JOBS = 10; // Configurable limit
     
-    if (currentJobs >= MAX_CONCURRENT_JOBS) {
-      return new Response(
-        JSON.stringify({ 
-          error: 'System at capacity',
-          details: `Too many concurrent mashup jobs (${currentJobs}/${MAX_CONCURRENT_JOBS}). Please try again in a few minutes.`
-        }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 503 }
-      );
-    }
+    // if (currentJobs >= MAX_CONCURRENT_JOBS) {
+    //   return new Response(
+    //     JSON.stringify({
+    //       error: 'System at capacity',
+    //       details: `Too many concurrent mashup jobs (${currentJobs}/${MAX_CONCURRENT_JOBS}). Please try again in a few minutes.`
+    //     }),
+    //     { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 503 }
+    //   );
+    // }
 
     // Generate a unique job ID
     jobId = crypto.randomUUID();
@@ -1233,7 +1235,7 @@ Deno.serve(async (req) => {
     // Create job state with initial status
     let jobState: any;
     try {
-      jobState = JobStateManager.createJob(jobId, songs);
+      jobState = await DatabaseJobStateManager.createJob(jobId, songs);
     } catch (jobCreationError) {
       console.error(`Failed to create job state for ${jobId}:`, jobCreationError);
       return new Response(
@@ -1277,7 +1279,7 @@ Deno.serve(async (req) => {
     // If we have a job ID, mark it as failed
     if (jobId) {
       try {
-        JobStateManager.failJob(jobId, `System error: ${error.message}`);
+        await DatabaseJobStateManager.failJob(jobId, `System error: ${error.message}`);
       } catch (failJobError) {
         console.error(`Failed to mark job ${jobId} as failed:`, failJobError);
       }
