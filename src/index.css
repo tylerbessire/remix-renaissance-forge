@@ -4,48 +4,50 @@
 
 @layer base {
   :root {
-    --background: 48 33% 98%; /* Off-white */
-    --foreground: 24 10% 10%; /* Dark Brown for text */
-    --card: 48 33% 96%;
-    --card-foreground: 24 10% 10%;
-    --popover: 48 33% 98%;
-    --popover-foreground: 24 10% 10%;
-    --primary: 25 95% 53%; /* Bright Orange */
-    --primary-foreground: 48 33% 98%;
-    --secondary: 35 33% 85%; /* Light Brown Accent */
-    --secondary-foreground: 24 10% 10%;
-    --muted: 35 33% 85%;
-    --muted-foreground: 24 10% 30%;
-    --accent: 120 15% 70%; /* Desert Sage Green */
-    --accent-foreground: 24 10% 10%;
+    --background: 136 9% 41%; /* muted sage green (#5f7264) */
+    --foreground: 22 65% 62%; /* warm orange text (#dd8e60) */
+    --card: 35 47% 65%; /* pale tan panels (#d0ad7b) */
+    --card-foreground: 22 40% 45%; /* deeper terracotta (#9f6544) */
+    --popover: 35 47% 65%;
+    --popover-foreground: 22 40% 45%;
+    --primary: 22 65% 62%; /* primary text orange */
+    --primary-foreground: 136 9% 41%;
+    --secondary: 22 40% 45%; /* secondary text */
+    --secondary-foreground: 136 9% 41%;
+    --muted: 35 47% 65%;
+    --muted-foreground: 22 40% 45%;
+    --accent: 35 47% 65%; /* pale tan accent */
+    --accent-foreground: 22 40% 45%;
+    --overlay: 18 29% 42%; /* red-rock overlay (#8b5f4c) */
+    --overlay-foreground: 35 47% 65%;
     --destructive: 0 84% 60%;
     --destructive-foreground: 48 33% 98%;
-    --border: 35 33% 85%;
-    --input: 35 33% 90%;
-    --ring: 25 95% 53%;
+    --border: 35 47% 65%;
+    --input: 35 47% 65%;
+    --ring: 22 65% 62%;
     --radius: 0.5rem;
   }
 
   .dark {
-    --background: 48 33% 98%;
-    --foreground: 24 10% 10%;
-    --card: 48 33% 96%;
-    --card-foreground: 24 10% 10%;
-    --popover: 48 33% 98%;
-    --popover-foreground: 24 10% 10%;
-    --primary: 25 95% 53%;
-    --primary-foreground: 48 33% 98%;
-    --secondary: 35 33% 85%;
-    --secondary-foreground: 24 10% 10%;
-    --muted: 35 33% 85%;
-    --muted-foreground: 24 10% 30%;
-    --accent: 120 15% 70%;
-    --accent-foreground: 24 10% 10%;
+    --background: 136 9% 20%; /* dark sage */
+    --foreground: 35 47% 65%; /* light tan text */
+    --card: 136 9% 26%;
+    --card-foreground: 35 47% 65%;
+    --popover: 136 9% 26%;
+    --popover-foreground: 35 47% 65%;
+    --primary: 35 47% 65%;
+    --primary-foreground: 136 9% 20%;
+    --secondary: 18 29% 42%; /* red-rock */
+    --secondary-foreground: 35 47% 65%;
+    --muted: 18 29% 42%;
+    --muted-foreground: 35 47% 65%;
+    --accent: 22 65% 62%;
+    --accent-foreground: 136 9% 20%;
     --destructive: 0 84% 60%;
     --destructive-foreground: 48 33% 98%;
-    --border: 35 33% 85%;
-    --input: 35 33% 90%;
-    --ring: 25 95% 53%;
+    --border: 18 29% 42%;
+    --input: 18 29% 42%;
+    --ring: 22 65% 62%;
   }
 }
 
@@ -54,10 +56,10 @@
     @apply border-border;
   }
   h1, h2, h3, h4, h5, h6 {
-    @apply font-montserrat text-primary;
+    @apply font-sans text-primary;
   }
   body {
-    @apply text-foreground font-montserrat;
-    background: linear-gradient(to bottom, #FFF8E1, #FFD29D);
+    @apply text-foreground font-sans;
+    background-color: hsl(var(--background));
   }
 }

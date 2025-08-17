@@ -91,10 +91,10 @@ export default {
 					yellow: 'hsl(var(--electric-yellow))'
 				}
 			},
-			fontFamily: {
-				'montserrat': ['Montserrat', 'sans-serif'],
-				'sans': ['Montserrat', 'ui-sans-serif', 'system-ui'],
-			},
+                        fontFamily: {
+                                'inter': ['Inter', 'sans-serif'],
+                                'sans': ['Inter', 'ui-sans-serif', 'system-ui'],
+                        },
 			borderRadius: {
 				lg: 'var(--radius)',
 				md: 'calc(var(--radius) - 2px)',

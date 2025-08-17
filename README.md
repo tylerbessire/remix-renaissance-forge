@@ -57,4 +57,4 @@ If it's missing, the function logs a warning at startup and returns a JSON respo
 }
 ```
 
-You will also need to add your `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, and `ANTHROPIC_API_KEY`. Refer to the `.env.example` file for the full list.
+You will also need to add your `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `ANTHROPIC_API_KEY`, and `OPENAI_API_KEY`. Refer to the `.env.example` file for the full list.
