@@ -1,4 +1,4 @@
-import { JobStateManager } from '../_shared/jobStateManager.ts';
+import { DatabaseJobStateManager } from '../_shared/databaseJobStateManager.ts';
 import { corsHeaders } from '../_shared/cors.ts';
 
 interface StatusRequest {
@@ -24,6 +24,7 @@ interface StatusResponse {
   title?: string;
   concept?: string;
   timeline?: any[];
+  masterplan?: any; // Add masterplan to the response
   metadata?: {
     songs_count: number;
     analyses_completed: number;
@@ -148,7 +149,7 @@ Deno.serve(async (req) => {
     console.log(`Checking status for job ${jobId}`);
 
     // Get job state from the job state manager
-    const jobState = JobStateManager.getJob(jobId);
+    const jobState = await DatabaseJobStateManager.getJob(jobId);
 
     if (!jobState) {
       return new Response(
@@ -195,7 +196,8 @@ Deno.serve(async (req) => {
       ...(jobState.masterplan && {
         title: jobState.masterplan.masterplan?.title,
         concept: jobState.masterplan.creative_vision,
-        timeline: jobState.masterplan.masterplan?.timeline
+        timeline: jobState.masterplan.masterplan?.timeline,
+        masterplan: jobState.masterplan, // Pass the whole masterplan object
       }),
       
       // Detailed metadata about processing progress
