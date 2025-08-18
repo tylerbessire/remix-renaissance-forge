@@ -1,0 +1,23 @@
+
+:8080
+
+handle_path /analysis* {
+  reverse_proxy 127.0.0.1:8000
+}
+handle_path /processing* {
+  reverse_proxy 127.0.0.1:8001
+}
+handle_path /scoring* {
+  reverse_proxy 127.0.0.1:8002
+}
+handle_path /orchestrator* {
+  reverse_proxy 127.0.0.1:8003
+}
+handle_path /separation* {
+  reverse_proxy 127.0.0.1:8004
+}
+
+# Health check endpoint
+handle /health {
+  respond "OK" 200
+}
