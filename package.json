@@ -16,6 +16,8 @@
     "kill-ports": "node scripts/kill-ports.js",
     "dev:complete": "npm run kill-ports && concurrently \"npm:python:start\" \"npm:tunnel:start\" \"npm:dev\"",
     "setup": "npm install && npm run python:install && echo '✅ Setup complete! Run: npm run dev:complete'",
+    "dev:up": "node scripts/dev-up.mjs",
+    "dev:down": "node scripts/dev-down.mjs",
     "test:integration": "tsx supabase/functions/_shared/test-integration.js"
   },
   "dependencies": {
