@@ -17,7 +17,7 @@ handle_path /separation* {
   reverse_proxy 127.0.0.1:8004
 }
 
-# Health check endpoint
+# simple health check for CI/scripts
 handle /health {
   respond "OK" 200
 }
