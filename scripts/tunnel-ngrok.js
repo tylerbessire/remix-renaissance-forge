@@ -18,7 +18,7 @@ class NgrokTunnelManager {
     return new Promise((resolve, reject) => {
       console.log('🚇 Starting ngrok tunnel for all services on port 8080...');
       
-      const tunnel = spawn('ngrok', ['http', '8080'], {
+      const tunnel = spawn('ngrok', ['http', '8080', '--log=stdout', '--log-format=logfmt'], {
         stdio: ['pipe', 'pipe', 'pipe'],
         env: { ...process.env }
       });

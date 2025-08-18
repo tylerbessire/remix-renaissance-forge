@@ -1,22 +1,6 @@
+# Use shared requirements from root
+-r ../requirements.txt
 
-# Web Server
-fastapi==0.111.0
-uvicorn==0.30.0
-
-# Data Validation
-pydantic
-
-# HTTP Client - pinned to avoid proxy/proxies kwarg issues
-httpx==0.27.2
-httpcore<1.0
-
-# Supabase - compatible versions that work with httpx 0.27.2
-supabase==2.8.1
-gotrue==2.9.0
-requests
-
-# ML & Audio
+# Additional ML dependencies specific to stem separation
 torch
 torchaudio
-demucs
-soundfile

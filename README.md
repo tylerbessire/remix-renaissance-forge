@@ -79,9 +79,26 @@ npm run dev:complete
 ```
 This uses the original localtunnel approach with individual tunnels per service.
 
-### 4. Fix Python Dependencies (If You Get Proxy Errors)
+### 4. Python Installation (Proper Order)
 
-If you see errors like `TypeError: Client.__init__() got an unexpected keyword argument 'proxy'`, run:
+**Important:** Install PyTorch first, then other dependencies to avoid conflicts:
+
+```bash
+# Create and activate virtual environment (recommended)
+python -m venv .venv && source .venv/bin/activate
+
+# Install PyTorch first (choose based on your system):
+# For CPU only:
+pip install torch torchaudio --index-url https://download.pytorch.org/whl/cpu
+
+# OR for Apple Silicon (MPS):
+# pip install torch torchaudio
+
+# Then install everything else:
+pip install -r requirements.txt
+```
+
+**If you get proxy errors** like `TypeError: Client.__init__() got an unexpected keyword argument 'proxy'`:
 
 ```bash
 pip uninstall -y httpx httpcore supabase gotrue
@@ -90,13 +107,27 @@ pip install -r requirements.txt
 
 This fixes compatibility issues between newer `httpx` versions and the Supabase Python client.
 
-### 5. Supabase Environment Variables
+### 5. System Dependencies (macOS)
+
+Install required system libraries for audio processing:
+
+```bash
+# Install audio processing libraries
+brew install rubberband ffmpeg
+
+# Verify rubberband is available
+which rubberband
+```
+
+**Note:** `pyrubberband` requires the Rubber Band CLI tool for time-stretching/pitch-shifting. Without it, you'll get "rubberband not found" errors.
+
+### 6. Supabase Environment Variables
 
 This project requires several environment variables to be set in your Supabase project to connect the Deno functions to the Python API services.
 
 Go to your **Supabase Dashboard → Project Settings → Environment Variables** and add the following:
 
-**For Stable Development (Single Tunnel):**
+**For Stable Development (Single Tunnel - Recommended):**
 After running `npm run dev:stable`, you'll get one Cloudflare URL. Use it like this:
 ```
 ANALYSIS_API_URL=https://your-tunnel-url.trycloudflare.com/analysis
@@ -106,7 +137,8 @@ ORCHESTRATOR_API_URL=https://your-tunnel-url.trycloudflare.com/orchestrator
 SEPARATION_API_URL=https://your-tunnel-url.trycloudflare.com/separation
 ```
 
-**For Legacy Development (Multiple Tunnels):**
+**For Legacy Development (Multiple Tunnels - Not Recommended):**
+Only use if Cloudflare tunnel fails:
 ```
 ANALYSIS_API_URL=https://tylers-remixer-analysis.loca.lt
 PROCESSING_API_URL=https://tylers-remixer-processing.loca.lt
