@@ -39,8 +39,6 @@ export const YouTubeSearch = ({ onSongSelected }: YouTubeSearchProps) => {
 
       console.log("Function response:", { data, funcError });
 
-      if (funcError) throw funcError;
-      if (!data?.success) throw new Error('Search failed on the backend.');
 
       console.log("Setting results:", data.results);
       setResults(data.results);
